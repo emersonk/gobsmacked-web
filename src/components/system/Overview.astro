@@ -1,0 +1,52 @@
+---
+const navData = [
+  {
+    category: "All pages",
+    sections: [
+      {
+        title: "Recipes",
+        links: [
+          { name: "Recipes", href: "/components/recipe" },
+        ],
+      },
+    ],
+  },
+];
+---
+<section>
+  <div
+    class="items-center w-full mx-auto 2xl:max-w-7xl 2xl:border-x-2 border-black">
+    <div class="p-8 lg:p-20 bg-yellow-500 border-b-2 border-black">
+      <p class="text-5xl lg:text-7xl text-black">Overview</p>
+    </div>
+    <div class="gap-12 p-8 lg:px-20">
+      {
+        navData.map((category) => (
+          <>
+            <p class="font-semibold text-black text-xl lg:text-2xl mb-3">
+              {category.category}
+            </p>
+            <div class="gap-12 grid grid-cols-2 lg:grid-cols-5 md:grid-cols-3 mt-10">
+              {category.sections.map((section) => (
+                <div class="text-sm">
+                  <div class="flex flex-col justify-start">
+                    <p class="font-semibold text-black text-xl lg:text-2xl mb-3">
+                      {section.title}
+                    </p>
+                    {section.links.map((link) => (
+                      <a
+                        class="font-medium hover:text-lila-900 text-base lg:py-0 py-2 mt-2 text-black"
+                        href={link.href}>
+                        {link.name}
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
+        ))
+      }
+    </div>
+  </div>
+</section>

@@ -1,0 +1,82 @@
+---
+
+---
+<!-- Recipe has 9 steps which means 9 divs -->
+<div class="parent">
+  <div class="div1 rounded">Make 2 inch deep incisions through fat cap</div>
+  <div class="div2">Using mortar and pestle, blend into chunky paste</div>
+  <div class="div3 rounded">Press paste deeply into incisions</div>
+  <div class="div4">Mix into paste</div>
+  <div class="div5 rounded">Smear over roast</div>
+  <div class="div6 rounded">Place lamb in rack</div>
+  <div class="div7">Season liberally</div>
+  <div class="div8 rounded">Squeeze halves over</div>
+  <div class="div9 rounded">Pour wine around the roast into the pan</div>
+</div>
+
+<style>
+  .parent {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    grid-template-rows: repeat(9, 1fr);
+    grid-column-gap: 0px;
+    grid-row-gap: 0px;
+  }
+
+  .rounded {
+    border-bottom-right-radius: 20px;
+  }
+
+  .parent div {
+    display: flex;
+    justify-content: center;
+    text-align: center;
+    box-shadow: 0 5px 1px rgba(0, 0, 0, 0.3);
+  }
+
+  .div1 {
+    grid-area: 1 / 1 / 2 / 2;
+    align-items: center;
+    border: 1px solid rgb(17, 14, 20);
+  }
+  .div2 {
+    grid-area: 2 / 1 / 5 / 2;
+    align-items: center;
+    border: 1px solid rgb(32, 25, 38);
+  }
+  .div3 {
+    grid-area: 1 / 2 / 5 / 3;
+    align-items: center;
+    border: 1px solid rgb(22, 11, 33);
+  }
+  .div4 {
+    grid-area: 5 / 1 / 7 / 3;
+    align-items: center;
+    border: 1px solid rgb(31, 16, 46);
+  }
+  .div5 {
+    grid-area: 1 / 3 / 7 / 4;
+    align-items: center;
+    border: 1px solid rgb(48, 30, 66);
+  }
+  .div6 {
+    grid-area: 1 / 5 / 8 / 6;
+    align-items: center;
+    border: 1px solid rebeccapurple;
+  }
+  .div7 {
+    grid-area: 1 / 1 / 8 / 5;
+    align-items: end;
+    border: 1px solid rgb(111, 38, 183);
+  }
+  .div8 {
+    grid-area: 1 / 1 / 9 / 7;
+    align-items: end;
+    border: 1px solid rgb(125, 24, 225);
+  }
+  .div9 {
+    grid-area: 1 / 1 / 10 / 8;
+    align-items: end;
+    border: 1px solid rgb(128, 0, 255);
+  }
+</style>
