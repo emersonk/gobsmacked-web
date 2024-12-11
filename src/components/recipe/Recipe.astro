@@ -2,8 +2,7 @@
 
 ---
 
-<!-- Recipe has 9 steps which means 9 divs -->
-<div class="parent">
+<!-- Recipe has 9 steps which means 9 divs --><!-- <div class="parent">
   <div class="div1 rounded">Make 2 inch deep incisions through fat cap</div>
   <div class="div2">Using mortar and pestle, blend into chunky paste</div>
   <div class="div3 rounded">Press paste deeply into incisions</div>
@@ -80,8 +79,7 @@
     align-items: end;
     border: 1px solid rgb(128, 0, 255);
   }
-</style>
-
+</style> -->
 <script>
   // Define interfaces for the recipe step structure
   interface Ingredient {
@@ -100,42 +98,31 @@
   // Function to generate grid areas dynamically based on recipe steps
   function calculateGridAreas(
     steps: RecipeStep[]
-  ): Record<number, { gridArea: string; borderColor: string }> {
+  ): Record<number, { gridArea: string }> {
     // Sort steps by their dependencies
     const sortedSteps = topologicalSort(steps);
 
     // Create a mapping to track each step's grid placement
-    const gridPlacements: Record<
-      number,
-      { gridArea: string; borderColor: string }
-    > = {};
-    let currentColumn = 1;
-
-    // There are 9 ingredients, so there are 9 rows
-    const maxRows = 9; // Total grid rows
+    const gridPlacements: Record<number, { gridArea: string }> = {};
+    let currentGridRowStart = 1;
+    let nextGridRowStart = 1;
+    let currentGridColumnStart = 1;
+    let nextGridColumnStart = currentGridColumnStart + 1;
 
     sortedSteps.forEach((step, index) => {
-      console.log(step);
-      // Basic placement strategy
-      const stepId = step.id;
-      const hasParents = step.parents && step.parents.length > 0;
+      let numOfIngredientsAddedInStep = step.ingredients?.length ?? 0;
+      nextGridRowStart = currentGridRowStart + numOfIngredientsAddedInStep;
 
-      // Determine grid area placement
-      const startRow = 1;
-      const endRow = hasParents
-        ? Math.min(maxRows, startRow + (index + 1) * 2)
-        : Math.min(maxRows, startRow + (index + 1));
-
-      gridPlacements[stepId] = {
-        gridArea: `${startRow} / ${currentColumn} / ${endRow} / ${currentColumn + 1}`,
-        borderColor: generateUniqueColor(index),
+      gridPlacements[step.id] = {
+        gridArea: `${currentGridRowStart} / ${currentGridColumnStart} / ${nextGridRowStart} / ${nextGridColumnStart}`,
       };
 
-      // Simple column progression
-      currentColumn = (currentColumn % 7) + 1;
+      currentGridRowStart = nextGridRowStart;
+      currentGridColumnStart++;
+      nextGridColumnStart++;
     });
 
-    console.log(gridPlacements)
+    console.log(gridPlacements);
     return gridPlacements;
   }
 
@@ -177,22 +164,6 @@
     return sortedSteps;
   }
 
-  // Generate a unique color for each step
-  function generateUniqueColor(index: number): string {
-    const baseColors = [
-      "rgb(17, 14, 20)",
-      "rgb(32, 25, 38)",
-      "rgb(22, 11, 33)",
-      "rgb(31, 16, 46)",
-      "rgb(48, 30, 66)",
-      "rebeccapurple",
-      "rgb(111, 38, 183)",
-      "rgb(125, 24, 225)",
-      "rgb(128, 0, 255)",
-    ];
-    return baseColors[index % baseColors.length];
-  }
-
   // Main function to generate HTML and CSS
   function generateRecipeGrid(recipeSteps: RecipeStep[]): HTMLDivElement {
     // Calculate grid placements
@@ -225,7 +196,6 @@
 .div${step.id} {
     grid-area: ${placement.gridArea};
     align-items: center;
-    border: 1px solid ${placement.borderColor};
 }
 `;
     });
