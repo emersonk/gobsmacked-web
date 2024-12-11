@@ -1,6 +1,7 @@
 ---
 
 ---
+
 <!-- Recipe has 9 steps which means 9 divs -->
 <div class="parent">
   <div class="div1 rounded">Make 2 inch deep incisions through fat cap</div>
@@ -80,3 +81,294 @@
     border: 1px solid rgb(128, 0, 255);
   }
 </style>
+
+<script>
+  // Define interfaces for the recipe step structure
+  interface Ingredient {
+    id: number;
+    amount: string | null;
+  }
+
+  interface RecipeStep {
+    id: number;
+    action: string;
+    options: string | null;
+    parents: number[] | null;
+    ingredients: Ingredient[] | null;
+  }
+
+  // Function to generate grid areas dynamically based on recipe steps
+  function calculateGridAreas(
+    steps: RecipeStep[]
+  ): Record<number, { gridArea: string; borderColor: string }> {
+    // Sort steps by their dependencies
+    const sortedSteps = topologicalSort(steps);
+
+    // Create a mapping to track each step's grid placement
+    const gridPlacements: Record<
+      number,
+      { gridArea: string; borderColor: string }
+    > = {};
+    let currentColumn = 1;
+
+    // There are 9 ingredients, so there are 9 rows
+    const maxRows = 9; // Total grid rows
+
+    sortedSteps.forEach((step, index) => {
+      console.log(step);
+      // Basic placement strategy
+      const stepId = step.id;
+      const hasParents = step.parents && step.parents.length > 0;
+
+      // Determine grid area placement
+      const startRow = 1;
+      const endRow = hasParents
+        ? Math.min(maxRows, startRow + (index + 1) * 2)
+        : Math.min(maxRows, startRow + (index + 1));
+
+      gridPlacements[stepId] = {
+        gridArea: `${startRow} / ${currentColumn} / ${endRow} / ${currentColumn + 1}`,
+        borderColor: generateUniqueColor(index),
+      };
+
+      // Simple column progression
+      currentColumn = (currentColumn % 7) + 1;
+    });
+
+    console.log(gridPlacements)
+    return gridPlacements;
+  }
+
+  // Topological sort to handle step dependencies
+  function topologicalSort(steps: RecipeStep[]): RecipeStep[] {
+    const graph = new Map<number, RecipeStep>();
+    const visited = new Set<number>();
+    const sortedSteps: RecipeStep[] = [];
+
+    // Create adjacency list
+    steps.forEach((step) => {
+      graph.set(step.id, step);
+    });
+
+    function visit(step: RecipeStep): void {
+      if (visited.has(step.id)) return;
+      visited.add(step.id);
+
+      // Recursively visit parents first
+      if (step.parents) {
+        step.parents.forEach((parentId) => {
+          const parent = graph.get(parentId);
+          if (parent && !visited.has(parentId)) {
+            visit(parent);
+          }
+        });
+      }
+
+      sortedSteps.push(step);
+    }
+
+    // Visit all steps
+    steps.forEach((step) => {
+      if (!visited.has(step.id)) {
+        visit(step);
+      }
+    });
+    console.log(sortedSteps);
+    return sortedSteps;
+  }
+
+  // Generate a unique color for each step
+  function generateUniqueColor(index: number): string {
+    const baseColors = [
+      "rgb(17, 14, 20)",
+      "rgb(32, 25, 38)",
+      "rgb(22, 11, 33)",
+      "rgb(31, 16, 46)",
+      "rgb(48, 30, 66)",
+      "rebeccapurple",
+      "rgb(111, 38, 183)",
+      "rgb(125, 24, 225)",
+      "rgb(128, 0, 255)",
+    ];
+    return baseColors[index % baseColors.length];
+  }
+
+  // Main function to generate HTML and CSS
+  function generateRecipeGrid(recipeSteps: RecipeStep[]): HTMLDivElement {
+    // Calculate grid placements
+    const gridPlacements = calculateGridAreas(recipeSteps);
+
+    // Generate CSS
+    let cssRules = `
+.parent {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    grid-template-rows: repeat(9, 1fr);
+    grid-column-gap: 0px;
+    grid-row-gap: 0px;
+}
+.rounded {
+    border-bottom-right-radius: 20px;
+}
+.parent div {
+    display: flex;
+    justify-content: center;
+    text-align: center;
+    box-shadow: 0 5px 1px rgba(0, 0, 0, 0.3);
+}
+`;
+
+    // Generate dynamic CSS for each step
+    recipeSteps.forEach((step) => {
+      const placement = gridPlacements[step.id];
+      cssRules += `
+.div${step.id} {
+    grid-area: ${placement.gridArea};
+    align-items: center;
+    border: 1px solid ${placement.borderColor};
+}
+`;
+    });
+
+    // Generate HTML
+    let htmlContent = '<div class="parent">';
+    recipeSteps.forEach((step) => {
+      const roundedClass = Math.random() > 0.5 ? "rounded" : "";
+      htmlContent += `
+<div class="div${step.id} ${roundedClass}">${step.action}</div>`;
+    });
+    htmlContent += "\n</div>";
+
+    // Create style element
+    const styleElement = document.createElement("style");
+    styleElement.textContent = cssRules;
+
+    // Create container for HTML and CSS
+    const container = document.createElement("div");
+    container.innerHTML = htmlContent;
+    container.appendChild(styleElement);
+
+    return container;
+  }
+
+  // Example usage:
+  function renderRecipeGrid(jsonString: string): void {
+    const parsedData = JSON.parse(jsonString);
+    const recipeSteps: RecipeStep[] = parsedData.steps; // Access the 'steps' array
+    const gridContainer = generateRecipeGrid(recipeSteps);
+    document.body.appendChild(gridContainer);
+  }
+
+  const recipeSteps = {
+    steps: [
+      {
+        id: 1,
+        action: "make incisions",
+        options: null,
+        parents: null,
+        ingredients: [
+          {
+            id: 1,
+            amount: null,
+          },
+        ],
+      },
+      {
+        id: 2,
+        action: "blend into a chunky paste",
+        options: "using a mortar and pestle or a blender",
+        parents: null,
+        ingredients: [
+          {
+            id: 2,
+            amount: "⅔",
+          },
+          {
+            id: 3,
+            amount: null,
+          },
+          {
+            id: 4,
+            amount: null,
+          },
+        ],
+      },
+      {
+        id: 3,
+        action: "press paste deeply into incisions",
+        options: null,
+        parents: [1, 2],
+        ingredients: null,
+      },
+      {
+        id: 4,
+        action: "mix into a paste",
+        options: null,
+        parents: null,
+        ingredients: [
+          {
+            id: 2,
+            amount: "⅓",
+          },
+          {
+            id: 5,
+            amount: null,
+          },
+        ],
+      },
+      {
+        id: 5,
+        action: "smear mixture all over the surface",
+        options: null,
+        parents: [1, 4],
+        ingredients: null,
+      },
+      {
+        id: 6,
+        action: "season liberally",
+        options: null,
+        parents: [5],
+        ingredients: [
+          {
+            id: 6,
+            amount: null,
+          },
+        ],
+      },
+      {
+        id: 7,
+        action: "place on a rack in a roasting pan, fat side up",
+        options: null,
+        parents: [6],
+        ingredients: null,
+      },
+      {
+        id: 8,
+        action: "squeeze over",
+        options: null,
+        parents: [7],
+        ingredients: [
+          {
+            id: 7,
+            amount: null,
+          },
+        ],
+      },
+      {
+        id: 9,
+        action: "pour around the roast into the pan",
+        options: null,
+        parents: [8],
+        ingredients: [
+          {
+            id: 8,
+            amount: null,
+          },
+        ],
+      },
+    ],
+  };
+
+  const jsonString = JSON.stringify(recipeSteps);
+  renderRecipeGrid(jsonString);
+</script>
