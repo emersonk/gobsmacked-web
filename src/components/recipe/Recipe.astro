@@ -96,61 +96,83 @@
     ingredients: Ingredient[] | null;
   }
 
-  // Function to generate grid areas dynamically based on recipe steps
   function calculateGridAreas(
-    steps: RecipeStep[]
-  ): Record<number, { currentGridRowStart: number; currentGridColumnStart: number;  nextGridRowStart: number; nextGridColumnStart: number; }> {
-    // Sort steps by their dependencies
-    const sortedSteps = topologicalSort(steps);
+  steps: RecipeStep[]
+): Record<number, { 
+  currentGridRowStart: number; 
+  currentGridColumnStart: number;  
+  nextGridRowStart: number; 
+  nextGridColumnStart: number; 
+}> {
+  // Sort steps by their dependencies
+  const sortedSteps = topologicalSort(steps);
 
-    // Create a mapping to track each step's grid placement
-    const gridPlacements: Record<number, { currentGridRowStart: number; currentGridColumnStart: number;  nextGridRowStart: number; nextGridColumnStart: number; } > = {};
-    let currentGridRowStart = 1;
-    let nextGridRowStart = 1;
-    let currentGridColumnStart = 1;
-    let nextGridColumnStart = 1;
+  // Create a mapping to track each step's grid placement
+  const gridPlacements: Record<number, { 
+    currentGridRowStart: number; 
+    currentGridColumnStart: number;  
+    nextGridRowStart: number; 
+    nextGridColumnStart: number; 
+  }> = {};
 
-    let columnEndPointer = 2;
+  let currentGridRowStart = 1;
+  let nextGridRowStart = 1;
+  let currentGridColumnStart = 1;
+  let nextGridColumnStart = 1;
 
-    sortedSteps.forEach((step, index) => {
-      // Row
-      let numOfIngredientsAddedInStep = step.ingredients?.length ?? 0;
-      nextGridRowStart = currentGridRowStart + numOfIngredientsAddedInStep;
+  let columnEndPointer = 2;
 
-      // Column
-      let numParents = step.parents?.length ?? 0;
-      if (numParents == 0) {
-        currentGridColumnStart = 1;
-        nextGridColumnStart = columnEndPointer;
-      }
+  sortedSteps.forEach((step, index) => {
+    // Calculate the number of ingredients added in the step
+    const numOfIngredientsAddedInStep = step.ingredients?.length ?? 0;
+    nextGridRowStart = currentGridRowStart + numOfIngredientsAddedInStep;
 
-      // If the parents are not null and the ingredients added in step are null
+    // Calculate the number of parents for the step
+    const numParents = step.parents?.length ?? 0;
+
+    if (numParents === 0) {
+      // If no parents, place the step in the first column
+      currentGridColumnStart = 1;
+      nextGridColumnStart = columnEndPointer;
+    } else {
+      // If there are parents, calculate placement based on parents
+
       // Rows:
       // currentGridRowStart = minimum currentGridRowStart of the parents
       // nextGridRowStart = maximum nextGridRowStart of the parents
-      // Columns:
-      // currentGridColumnStart = maximum nextGridColumnStart of the parents
-      // nextGridColumnStart = currentGridColumnStart + 1
+      const parentPlacements = step.parents?.map(parentId => gridPlacements[parentId]).filter(Boolean) || [];
 
-      gridPlacements[step.id] = {
-        currentGridRowStart: currentGridRowStart,
-        currentGridColumnStart: currentGridColumnStart,
-        nextGridRowStart: nextGridRowStart,
-        nextGridColumnStart: nextGridColumnStart,
-      };
+      if (parentPlacements.length > 0) {
+        currentGridRowStart = Math.min(...parentPlacements.map(p => p.currentGridRowStart));
+        nextGridRowStart = Math.max(...parentPlacements.map(p => p.nextGridRowStart));
 
-      // Row
-      currentGridRowStart = nextGridRowStart;
-
-      // Column
-      if (numParents >= 1) {
-        columnEndPointer++;
+        // Columns:
+        // currentGridColumnStart = maximum nextGridColumnStart of the parents
+        // nextGridColumnStart = currentGridColumnStart + 1
+        currentGridColumnStart = Math.max(...parentPlacements.map(p => p.nextGridColumnStart));
+        nextGridColumnStart = currentGridColumnStart + 1;
       }
-    });
+    }
 
-    console.log(gridPlacements);
-    return gridPlacements;
-  }
+    // Assign the calculated placement to the current step
+    gridPlacements[step.id] = {
+      currentGridRowStart: currentGridRowStart,
+      currentGridColumnStart: currentGridColumnStart,
+      nextGridRowStart: nextGridRowStart,
+      nextGridColumnStart: nextGridColumnStart,
+    };
+
+    // Update row and column pointers for the next step
+    currentGridRowStart = nextGridRowStart;
+    if (numParents >= 1) {
+      columnEndPointer++;
+    }
+  });
+
+  console.log(gridPlacements);
+  return gridPlacements;
+}
+
 
   // Topological sort to handle step dependencies
   function topologicalSort(steps: RecipeStep[]): RecipeStep[] {
