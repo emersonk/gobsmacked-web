@@ -19,15 +19,19 @@
     ingredients: Ingredient[] | null;
   }
 
-  function calculateGridAreas(steps: RecipeStep[]): Record<
+  function calculateGridAreas(steps: RecipeStep[]): [
     number,
-    {
-      currentGridRowStart: number;
-      currentGridColumnStart: number;
-      nextGridRowStart: number;
-      nextGridColumnStart: number;
-    }
-  > {
+    Record<
+      number,
+      {
+        currentGridRowStart: number;
+        currentGridColumnStart: number;
+        nextGridRowStart: number;
+        nextGridColumnStart: number;
+        borderRadius: number;
+      }
+    >,
+  ] {
     // Sort steps by their dependencies
     const sortedSteps = topologicalSort(steps);
 
@@ -39,6 +43,7 @@
         currentGridColumnStart: number;
         nextGridRowStart: number;
         nextGridColumnStart: number;
+        borderRadius: number;
       }
     > = {};
 
@@ -104,12 +109,19 @@
           Math.max(...parentPlacements.map((p) => p.nextGridColumnStart)) + 1;
       }
 
+      // If ingredients are added in the next step the border should be rounded
+      let borderRadius = 0;
+      if (index + 1 < sortedSteps.length && sortedSteps[index + 1]) {
+        borderRadius = sortedSteps[index + 1].ingredients?.length ?? 0 >= 1 ? 20 : 0;
+      }
+
       // Assign the calculated placement to the current step
       gridPlacements[step.id] = {
         currentGridRowStart: currentGridRowStart,
         currentGridColumnStart: currentGridColumnStart,
         nextGridRowStart: nextGridRowStart,
         nextGridColumnStart: nextGridColumnStart,
+        borderRadius: borderRadius
       };
 
       // Update row and column pointers for the next step
@@ -119,8 +131,7 @@
       }
     });
 
-    console.log(gridPlacements);
-    return gridPlacements;
+    return [columnEndPointer - 1, gridPlacements];
   }
 
   // Topological sort to handle step dependencies
@@ -157,23 +168,19 @@
         visit(step);
       }
     });
-    console.log(sortedSteps);
     return sortedSteps;
   }
 
   // Main function to generate HTML and CSS
   function generateRecipeGrid(recipeSteps: RecipeStep[]): HTMLDivElement {
     // Calculate grid placements
-    const gridPlacements = calculateGridAreas(recipeSteps);
+    const [numberOfColumns, gridPlacements] = calculateGridAreas(recipeSteps);
 
     // Generate CSS
     let cssRules = `
       .parent {
-          display: grid;
-          grid-template-columns: repeat(7, 1fr);
-          grid-template-rows: repeat(9, 1fr);
-          grid-column-gap: 0px;
-          grid-row-gap: 0px;
+          grid-template-columns: repeat(${numberOfColumns}, 1fr);
+          grid-template-rows: repeat(${recipeSteps.length}, 1fr);
       }`;
 
     // Generate dynamic CSS for each step
@@ -183,6 +190,7 @@
       .div${step.id} {
           grid-area: ${placement.currentGridRowStart} / ${placement.currentGridColumnStart} / ${placement.nextGridRowStart} / ${placement.nextGridColumnStart};
           align-items: end;
+          border-bottom-right-radius: ${placement.borderRadius}px;
       }`;
     });
 

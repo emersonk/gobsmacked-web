@@ -30,6 +30,12 @@ details[open] summary {
   @apply text-xl prose prose-xl text-black  prose-a:font-normal prose-a:text-lila-800 hover:prose-a:text-black prose-h1:text-black  prose-img:border-transparent  prose-h2:text-black prose-img:shadow-large prose-headings:font-medium tracking-wide prose-blockquote:border-2 prose-blockquote:bg-yellow-500 prose-img:rounded-3xl prose-img:border-2 prose-img:border-black prose-blockquote:p-12 prose-blockquote:border-black prose-blockquote:rounded-3xl prose-blockquote:shadow-large  prose-pre:font-mono max-w-none prose-pre:border;
 }
 
+.parent {
+  display: grid;
+  grid-column-gap: 0px;
+  grid-row-gap: 0px;
+}
+
 .parent div {
   display: flex;
   justify-content: center;
