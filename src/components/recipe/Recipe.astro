@@ -29,6 +29,7 @@
         nextGridRowStart: number;
         nextGridColumnStart: number;
         borderRadius: number;
+        alignItems: string;
       }
     >,
   ] {
@@ -44,6 +45,7 @@
         nextGridRowStart: number;
         nextGridColumnStart: number;
         borderRadius: number;
+        alignItems: string;
       }
     > = {};
 
@@ -68,7 +70,8 @@
         currentGridColumnStart = 1;
         nextGridColumnStart = columnEndPointer;
       } else if (numParents >= 1 && numOfIngredientsAddedInStep === 0) {
-        // If there are only parents added in step
+        // If there are only parents in step (and no added ingredients) 
+        // it is a combination of the results of previous steps
 
         const parentPlacements =
           step.parents
@@ -115,13 +118,20 @@
         borderRadius = sortedSteps[index + 1].ingredients?.length ?? 0 >= 1 ? 20 : 0;
       }
 
+      // Determine text alignment
+      let alignItems = "end";
+      if (numOfIngredientsAddedInStep != 1) {
+        alignItems = "center";
+      }
+
       // Assign the calculated placement to the current step
       gridPlacements[step.id] = {
         currentGridRowStart: currentGridRowStart,
         currentGridColumnStart: currentGridColumnStart,
         nextGridRowStart: nextGridRowStart,
         nextGridColumnStart: nextGridColumnStart,
-        borderRadius: borderRadius
+        borderRadius: borderRadius,
+        alignItems: alignItems
       };
 
       // Update row and column pointers for the next step
@@ -189,7 +199,7 @@
       cssRules += `
       .div${step.id} {
           grid-area: ${placement.currentGridRowStart} / ${placement.currentGridColumnStart} / ${placement.nextGridRowStart} / ${placement.nextGridColumnStart};
-          align-items: end;
+          align-items: ${placement.alignItems};
           border-bottom-right-radius: ${placement.borderRadius}px;
       }`;
     });
