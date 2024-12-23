@@ -51,10 +51,10 @@
 
     let currentGridRowStart = 1;
     let nextGridRowStart = 1;
-    let currentGridColumnStart = 1;
-    let nextGridColumnStart = 1;
+    let currentGridColumnStart = 4;
+    let nextGridColumnStart = 4;
 
-    let columnEndPointer = 2;
+    let columnEndPointer = 5;
 
     sortedSteps.forEach((step, index) => {
       // Calculate the number of ingredients added in the step
@@ -67,7 +67,7 @@
 
       if (numParents === 0 && numOfIngredientsAddedInStep >= 1) {
         // If no parents, place the step in the first column
-        currentGridColumnStart = 1;
+        currentGridColumnStart = 4;
         nextGridColumnStart = columnEndPointer;
       } else if (numParents >= 1 && numOfIngredientsAddedInStep === 0) {
         // If there are only parents in step (and no added ingredients)
@@ -107,7 +107,7 @@
           numOfIngredientsAddedInStep;
 
         // Columns
-        currentGridColumnStart = 1;
+        currentGridColumnStart = 4;
         nextGridColumnStart =
           Math.max(...parentPlacements.map((p) => p.nextGridColumnStart)) + 1;
       }
@@ -143,7 +143,7 @@
     });
 
     // Total number 
-    let numberOfColumns = (columnEndPointer - 1) + 3
+    let numberOfColumns = (columnEndPointer - 1)
     return [numberOfColumns, gridPlacements];
   }
 
