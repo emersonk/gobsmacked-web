@@ -32,12 +32,22 @@
         alignItems: string;
       }
     >,
+    Record<
+      number,
+      {
+        currentGridRowStart: number;
+        quantity: string;
+        ingredient: string;
+        amount: string;
+        miseEnPlace: string;
+      }
+    >,
   ] {
     // Sort steps by their dependencies
     const sortedSteps = topologicalSort(steps);
 
     // Create a mapping to track each step's grid placement
-    const gridPlacements: Record<
+    const gridPlacementSteps: Record<
       number,
       {
         currentGridRowStart: number;
@@ -46,6 +56,18 @@
         nextGridColumnStart: number;
         borderRadius: number;
         alignItems: string;
+      }
+    > = {};
+
+    // Handling ingredients for each step
+    const gridPlacementIngredients: Record<
+      number,
+      {
+        currentGridRowStart: number;
+        quantity: string;
+        ingredient: string;
+        amount: string;
+        miseEnPlace: string;
       }
     > = {};
 
@@ -59,6 +81,10 @@
     sortedSteps.forEach((step, index) => {
       // Calculate the number of ingredients added in the step
       const numOfIngredientsAddedInStep = step.ingredients?.length ?? 0;
+
+      if (numOfIngredientsAddedInStep >= 1) {
+        console.log(step.ingredients);
+      }
 
       // Calculate the number of parents for the step
       const numParents = step.parents?.length ?? 0;
@@ -75,7 +101,7 @@
 
         const parentPlacements =
           step.parents
-            ?.map((parentId) => gridPlacements[parentId])
+            ?.map((parentId) => gridPlacementSteps[parentId])
             .filter(Boolean) || [];
         // Rows:
         // currentGridRowStart = minimum currentGridRowStart of the parents
@@ -97,7 +123,7 @@
       } else if (numParents >= 1 && numOfIngredientsAddedInStep >= 1) {
         const parentPlacements =
           step.parents
-            ?.map((parentId) => gridPlacements[parentId])
+            ?.map((parentId) => gridPlacementSteps[parentId])
             .filter(Boolean) || [];
 
         // Rows
@@ -126,7 +152,7 @@
       }
 
       // Assign the calculated placement to the current step
-      gridPlacements[step.id] = {
+      gridPlacementSteps[step.id] = {
         currentGridRowStart: currentGridRowStart,
         currentGridColumnStart: currentGridColumnStart,
         nextGridRowStart: nextGridRowStart,
@@ -142,9 +168,9 @@
       }
     });
 
-    // Total number 
-    let numberOfColumns = (columnEndPointer - 1)
-    return [numberOfColumns, gridPlacements];
+    // Total number
+    let numberOfColumns = columnEndPointer - 1;
+    return [numberOfColumns, gridPlacementSteps, gridPlacementIngredients];
   }
 
   // Topological sort to handle step dependencies
@@ -187,9 +213,10 @@
   // Main function to generate HTML and CSS
   function generateRecipeGrid(recipeSteps: RecipeStep[]): HTMLDivElement {
     // Calculate grid placements
-    const [numberOfColumns, gridPlacements] = calculateGridAreas(recipeSteps);
+    const [numberOfColumns, gridPlacementSteps, gridPlacementIngredients] =
+      calculateGridAreas(recipeSteps);
 
-    // Generate CSS
+    // Generate CSS for parent
     let cssRules = `
       .parent {
           grid-template-columns: repeat(${numberOfColumns}, 1fr);
@@ -198,19 +225,35 @@
 
     // Generate dynamic CSS for each step
     recipeSteps.forEach((step) => {
-      const placement = gridPlacements[step.id];
+      const placement = gridPlacementSteps[step.id];
       cssRules += `
-      .div${step.id} {
+      .step-${step.id} {
           grid-area: ${placement.currentGridRowStart} / ${placement.currentGridColumnStart} / ${placement.nextGridRowStart} / ${placement.nextGridColumnStart};
           align-items: ${placement.alignItems};
           border-bottom-right-radius: ${placement.borderRadius}px;
       }`;
     });
 
-    // Generate HTML
-    const htmlContent = recipeSteps
-      .map((step) => `<div class="div${step.id}">${step.action}</div>`)
+    // Generate CSS for ingredients
+    cssRules += `
+      .quantity-1 {
+          grid-area: 1 / 1 / 2 / 2;
+      }
+      .name-1 {
+          grid-area: 1 / 2 / 2 / 3;
+      }
+      .mep-1 {
+          grid-area: 1 / 3 / 2 / 4;
+      }`;
+
+    // Generate HTML for the steps
+    const htmlStepContent = recipeSteps
+      .map((step) => `<div class="step-${step.id}">${step.action}</div>`)
       .join("");
+
+    const htmlIngredientContent = `<div class="quantity-1">test</div>
+                                   <div class="name-1">name-1</div>
+                                   <div class="mep-1">mep-1</div>`;
 
     // Create style element
     const styleElement = document.createElement("style");
@@ -218,7 +261,8 @@
 
     // Create container for HTML and CSS
     const container = document.createElement("div");
-    container.innerHTML = htmlContent;
+    container.innerHTML = htmlIngredientContent;
+    container.insertAdjacentHTML("beforeend", htmlStepContent);
     container.appendChild(styleElement);
 
     return container;
