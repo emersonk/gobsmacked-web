@@ -5,317 +5,350 @@
 <div class="parent"></div>
 
 <script>
-  // Define interfaces for the recipe step structure
-  interface StepIngredient {
-    id: number;
-    amount: string | null;
+// Types
+interface StepIngredient {
+  id: number;
+  amount: string | null;
+}
+
+interface RecipeStep {
+  id: number;
+  action: string;
+  options: string | null;
+  parents: number[] | null;
+  ingredients: StepIngredient[] | null;
+}
+
+interface Ingredient {
+  id: number;
+  name: string;
+  quantity: string | null;
+  mise_en_place: string | null;
+  options: string | null;
+  notes: string | null;
+}
+
+interface GridPlacement {
+  currentGridRowStart: number;
+  currentGridColumnStart: number;
+  nextGridRowStart: number;
+  nextGridColumnStart: number;
+  borderRadius: number;
+  alignItems: string;
+}
+
+interface IngredientPlacement {
+  currentGridRowStart: number;
+  quantity: string | null;
+  ingredient: string;
+  amount: string | null;
+  miseEnPlace: string | null;
+}
+
+// Core calculation logic
+class RecipeGridCalculator {
+  private steps: RecipeStep[];
+  private ingredients: Ingredient[];
+  private gridPlacementSteps: Record<number, GridPlacement> = {};
+  private gridPlacementIngredients: Record<number, IngredientPlacement> = {};
+  private columnEndPointer = 5;
+  private numIngredientsCounter = 0;
+
+  constructor(steps: RecipeStep[], ingredients: Ingredient[]) {
+    this.steps = steps;
+    this.ingredients = ingredients;
   }
 
-  interface RecipeStep {
-    id: number;
-    action: string;
-    options: string | null;
-    parents: number[] | null;
-    ingredients: StepIngredient[] | null;
+  calculate(): [number, Record<number, GridPlacement>, Record<number, IngredientPlacement>] {
+    const sortedSteps = this.topologicalSort();
+    this.processSteps(sortedSteps);
+    return [this.columnEndPointer - 1, this.gridPlacementSteps, this.gridPlacementIngredients];
   }
 
-  interface Ingredient {
-    id: number;
-    name: string;
-    quantity: string | null;
-    mise_en_place: string | null;
-    options: string | null;
-    notes: string | null;
-  }
-
-  function calculateGridAreas(
-    steps: RecipeStep[],
-    ingredients: Ingredient[]
-  ): [
-    number,
-    Record<
-      number,
-      {
-        currentGridRowStart: number;
-        currentGridColumnStart: number;
-        nextGridRowStart: number;
-        nextGridColumnStart: number;
-        borderRadius: number;
-        alignItems: string;
-      }
-    >,
-    Record<
-      number,
-      {
-        currentGridRowStart: number;
-        quantity: string | null;
-        ingredient: string;
-        amount: string | null;
-        miseEnPlace: string | null;
-      }
-    >,
-  ] {
-    // Sort steps by their dependencies
-    const sortedSteps = topologicalSort(steps);
-
-    // Create a mapping to track each step's grid placement
-    const gridPlacementSteps: Record<
-      number,
-      {
-        currentGridRowStart: number;
-        currentGridColumnStart: number;
-        nextGridRowStart: number;
-        nextGridColumnStart: number;
-        borderRadius: number;
-        alignItems: string;
-      }
-    > = {};
-
-    // Handling ingredients for each step
-    const gridPlacementIngredients: Record<
-      number,
-      {
-        currentGridRowStart: number;
-        quantity: string | null;
-        ingredient: string;
-        amount: string | null;
-        miseEnPlace: string | null;
-      }
-    > = {};
-
+  private processSteps(sortedSteps: RecipeStep[]): void {
     let currentGridRowStart = 1;
     let nextGridRowStart = 1;
     let currentGridColumnStart = 4;
     let nextGridColumnStart = 4;
 
-    let columnEndPointer = 5;
-    let numIngredientsCounter = 0;
-
     sortedSteps.forEach((step, index) => {
-      // Calculate the number of ingredients added in the step
-      const numOfIngredientsAddedInStep = step.ingredients?.length ?? 0;
+      const placement = this.calculateStepPlacement(
+        step,
+        currentGridRowStart,
+        currentGridColumnStart,
+        nextGridRowStart,
+        nextGridColumnStart,
+        index,
+        sortedSteps
+      );
 
-      if (numOfIngredientsAddedInStep >= 1) {
-        let stepIngredients = step.ingredients ?? [];
-        stepIngredients.forEach((ingredient) => {
-          let i = ingredients.find((x) => x.id === ingredient.id);
-
-          gridPlacementIngredients[numIngredientsCounter] = {
-            currentGridRowStart: numIngredientsCounter + 1,
-            quantity: i!.quantity,
-            ingredient: i!.name,
-            amount: ingredient.amount,
-            miseEnPlace: i!.mise_en_place,
-          };
-
-          numIngredientsCounter++;
-        });
-      }
-
-      // Calculate the number of parents for the step
-      const numParents = step.parents?.length ?? 0;
-
-      nextGridRowStart = currentGridRowStart + numOfIngredientsAddedInStep;
-
-      if (numParents === 0 && numOfIngredientsAddedInStep >= 1) {
-        // If no parents, place the step in the first column
-        currentGridColumnStart = 4;
-        nextGridColumnStart = columnEndPointer;
-      } else if (numParents >= 1 && numOfIngredientsAddedInStep === 0) {
-        // If there are only parents in step (and no added ingredients)
-        // it is a combination of the results of previous steps
-
-        const parentPlacements =
-          step.parents
-            ?.map((parentId) => gridPlacementSteps[parentId])
-            .filter(Boolean) || [];
-        // Rows:
-        // currentGridRowStart = minimum currentGridRowStart of the parents
-        // nextGridRowStart = maximum nextGridRowStart of the parents
-        currentGridRowStart = Math.min(
-          ...parentPlacements.map((p) => p.currentGridRowStart)
-        );
-        nextGridRowStart = Math.max(
-          ...parentPlacements.map((p) => p.nextGridRowStart)
-        );
-
-        // Columns:
-        // currentGridColumnStart = maximum nextGridColumnStart of the parents
-        // nextGridColumnStart = currentGridColumnStart + 1
-        currentGridColumnStart = Math.max(
-          ...parentPlacements.map((p) => p.nextGridColumnStart)
-        );
-        nextGridColumnStart = currentGridColumnStart + 1;
-      } else if (numParents >= 1 && numOfIngredientsAddedInStep >= 1) {
-        const parentPlacements =
-          step.parents
-            ?.map((parentId) => gridPlacementSteps[parentId])
-            .filter(Boolean) || [];
-
-        // Rows
-        currentGridRowStart = 1;
-        nextGridRowStart =
-          Math.max(...parentPlacements.map((p) => p.nextGridRowStart)) +
-          numOfIngredientsAddedInStep;
-
-        // Columns
-        currentGridColumnStart = 4;
-        nextGridColumnStart =
-          Math.max(...parentPlacements.map((p) => p.nextGridColumnStart)) + 1;
-      }
-
-      // If ingredients are added in the next step the border should be rounded
-      let borderRadius = 0;
-      if (index + 1 < sortedSteps.length && sortedSteps[index + 1]) {
-        borderRadius =
-          (sortedSteps[index + 1].ingredients?.length ?? 0 >= 1) ? 20 : 0;
-      }
-
-      // Determine text alignment
-      let alignItems = "end";
-      if (numOfIngredientsAddedInStep != 1) {
-        alignItems = "center";
-      }
-
-      // Assign the calculated placement to the current step
-      gridPlacementSteps[step.id] = {
-        currentGridRowStart: currentGridRowStart,
-        currentGridColumnStart: currentGridColumnStart,
-        nextGridRowStart: nextGridRowStart,
-        nextGridColumnStart: nextGridColumnStart,
-        borderRadius: borderRadius,
-        alignItems: alignItems,
-      };
-
-      // Update row and column pointers for the next step
-      currentGridRowStart = nextGridRowStart;
-      if (numParents >= 1) {
-        columnEndPointer++;
+      this.gridPlacementSteps[step.id] = placement;
+      
+      // Update positions for next iteration
+      currentGridRowStart = placement.nextGridRowStart;
+      if (step.parents?.length ?? 0 >= 1) {
+        this.columnEndPointer++;
       }
     });
-
-    // Total number
-    let numberOfColumns = columnEndPointer - 1;
-    return [numberOfColumns, gridPlacementSteps, gridPlacementIngredients];
   }
 
-  // Topological sort to handle step dependencies
-  function topologicalSort(steps: RecipeStep[]): RecipeStep[] {
+  private calculateStepPlacement(
+    step: RecipeStep,
+    currentGridRowStart: number,
+    currentGridColumnStart: number,
+    nextGridRowStart: number,
+    nextGridColumnStart: number,
+    index: number,
+    sortedSteps: RecipeStep[]
+  ): GridPlacement {
+    const numOfIngredientsAddedInStep = this.processStepIngredients(step);
+    const numParents = step.parents?.length ?? 0;
+
+    const gridPosition = this.calculateGridPosition(
+      step,
+      numOfIngredientsAddedInStep,
+      numParents,
+      currentGridRowStart,
+      currentGridColumnStart
+    );
+
+    return {
+      ...gridPosition,
+      borderRadius: this.calculateBorderRadius(index, sortedSteps),
+      alignItems: numOfIngredientsAddedInStep === 1 ? "end" : "center"
+    };
+  }
+
+  private processStepIngredients(step: RecipeStep): number {
+    const stepIngredients = step.ingredients ?? [];
+    stepIngredients.forEach(ingredient => {
+      const fullIngredient = this.ingredients.find(x => x.id === ingredient.id);
+      if (fullIngredient) {
+        this.gridPlacementIngredients[this.numIngredientsCounter] = {
+          currentGridRowStart: this.numIngredientsCounter + 1,
+          quantity: fullIngredient.quantity,
+          ingredient: fullIngredient.name,
+          amount: ingredient.amount,
+          miseEnPlace: fullIngredient.mise_en_place
+        };
+        this.numIngredientsCounter++;
+      }
+    });
+    return stepIngredients.length;
+  }
+
+  private calculateGridPosition(
+    step: RecipeStep,
+    numOfIngredientsAddedInStep: number,
+    numParents: number,
+    currentGridRowStart: number,
+    currentGridColumnStart: number
+  ): Pick<GridPlacement, 'currentGridRowStart' | 'currentGridColumnStart' | 'nextGridRowStart' | 'nextGridColumnStart'> {
+    if (numParents === 0 && numOfIngredientsAddedInStep >= 1) {
+      return this.calculatePositionForNewIngredients(
+        currentGridRowStart,
+        numOfIngredientsAddedInStep
+      );
+    }
+    
+    if (numParents >= 1) {
+      return this.calculatePositionWithParents(
+        step,
+        numOfIngredientsAddedInStep
+      );
+    }
+
+    return {
+      currentGridRowStart,
+      currentGridColumnStart,
+      nextGridRowStart: currentGridRowStart + numOfIngredientsAddedInStep,
+      nextGridColumnStart: this.columnEndPointer
+    };
+  }
+
+  private calculatePositionForNewIngredients(
+    currentGridRowStart: number,
+    numOfIngredientsAdded: number
+  ): Pick<GridPlacement, 'currentGridRowStart' | 'currentGridColumnStart' | 'nextGridRowStart' | 'nextGridColumnStart'> {
+    return {
+      currentGridRowStart,
+      currentGridColumnStart: 4,
+      nextGridRowStart: currentGridRowStart + numOfIngredientsAdded,
+      nextGridColumnStart: this.columnEndPointer
+    };
+  }
+
+  private calculatePositionWithParents(
+    step: RecipeStep,
+    numOfIngredientsAdded: number
+  ): Pick<GridPlacement, 'currentGridRowStart' | 'currentGridColumnStart' | 'nextGridRowStart' | 'nextGridColumnStart'> {
+    const parentPlacements = step.parents
+      ?.map(parentId => this.gridPlacementSteps[parentId])
+      .filter(Boolean) ?? [];
+
+    if (numOfIngredientsAdded === 0) {
+      return {
+        currentGridRowStart: Math.min(...parentPlacements.map(p => p.currentGridRowStart)),
+        currentGridColumnStart: Math.max(...parentPlacements.map(p => p.nextGridColumnStart)),
+        nextGridRowStart: Math.max(...parentPlacements.map(p => p.nextGridRowStart)),
+        nextGridColumnStart: Math.max(...parentPlacements.map(p => p.nextGridColumnStart)) + 1
+      };
+    }
+
+    return {
+      currentGridRowStart: 1,
+      currentGridColumnStart: 4,
+      nextGridRowStart: Math.max(...parentPlacements.map(p => p.nextGridRowStart)) + numOfIngredientsAdded,
+      nextGridColumnStart: Math.max(...parentPlacements.map(p => p.nextGridColumnStart)) + 1
+    };
+  }
+
+  private calculateBorderRadius(index: number, sortedSteps: RecipeStep[]): number {
+    if (index + 1 < sortedSteps.length) {
+      return (sortedSteps[index + 1].ingredients?.length ?? 0) >= 1 ? 20 : 0;
+    }
+    return 0;
+  }
+
+  private topologicalSort(): RecipeStep[] {
     const graph = new Map<number, RecipeStep>();
     const visited = new Set<number>();
     const sortedSteps: RecipeStep[] = [];
 
-    // Create adjacency list
-    steps.forEach((step) => {
-      graph.set(step.id, step);
-    });
+    this.steps.forEach(step => graph.set(step.id, step));
 
-    function visit(step: RecipeStep): void {
+    const visit = (step: RecipeStep): void => {
       if (visited.has(step.id)) return;
       visited.add(step.id);
 
-      // Recursively visit parents first
-      if (step.parents) {
-        step.parents.forEach((parentId) => {
-          const parent = graph.get(parentId);
-          if (parent && !visited.has(parentId)) {
-            visit(parent);
-          }
-        });
-      }
+      step.parents?.forEach(parentId => {
+        const parent = graph.get(parentId);
+        if (parent && !visited.has(parentId)) {
+          visit(parent);
+        }
+      });
 
       sortedSteps.push(step);
-    }
+    };
 
-    // Visit all steps
-    steps.forEach((step) => {
+    this.steps.forEach(step => {
       if (!visited.has(step.id)) {
         visit(step);
       }
     });
+
     return sortedSteps;
   }
+}
 
-  // Main function to generate HTML and CSS
-  function generateRecipeGrid(
-    recipeSteps: RecipeStep[],
-    ingredients: Ingredient[]
-  ): HTMLDivElement {
-    // Calculate grid placements
-    const [numberOfColumns, gridPlacementSteps, gridPlacementIngredients] =
-      calculateGridAreas(recipeSteps, ingredients);
+// HTML/CSS Generator
+class RecipeGridRenderer {
+  private numberOfColumns: number;
+  private gridPlacementSteps: Record<number, GridPlacement>;
+  private gridPlacementIngredients: Record<number, IngredientPlacement>;
+  private steps: RecipeStep[];
 
-    // Generate CSS for parent
-    let cssRules = `
-      .parent {
-          grid-template-columns: repeat(${numberOfColumns}, 1fr);
-          grid-template-rows: repeat(${recipeSteps.length}, 1fr);
-      }`;
+  constructor(
+    numberOfColumns: number,
+    gridPlacementSteps: Record<number, GridPlacement>,
+    gridPlacementIngredients: Record<number, IngredientPlacement>,
+    steps: RecipeStep[]
+  ) {
+    this.numberOfColumns = numberOfColumns;
+    this.gridPlacementSteps = gridPlacementSteps;
+    this.gridPlacementIngredients = gridPlacementIngredients;
+    this.steps = steps;
+  }
 
-    // Generate dynamic CSS for each step
-    recipeSteps.forEach((step) => {
-      const placement = gridPlacementSteps[step.id];
-      cssRules += `
-      .step-${step.id} {
-          grid-area: ${placement.currentGridRowStart} / ${placement.currentGridColumnStart} / ${placement.nextGridRowStart} / ${placement.nextGridColumnStart};
-          align-items: ${placement.alignItems};
-          border-bottom-right-radius: ${placement.borderRadius}px;
-      }`;
-    });
-
-    // Generate ingredients
-    let htmlIngredientContent = ``;
-    Object.entries(gridPlacementIngredients).forEach(([key, value]) => {
-      cssRules += `
-      .quantity-${key} {
-          grid-area: ${value.currentGridRowStart} / 1 / ${value.currentGridRowStart + 1} / 2;
-      }
-      .name-${key} {
-          grid-area: ${value.currentGridRowStart} / 2 / ${value.currentGridRowStart + 1} / 3;
-      }
-      .mep-${key} {
-          grid-area: ${value.currentGridRowStart} / 3 / ${value.currentGridRowStart + 1} / 4;
-      }`;
-
-      // TODO handle situation where there is mep steps as well as an amount
-      htmlIngredientContent += `
-      <div class="quantity-${key}">${value.quantity ?? ""}</div>
-      <div class="name-${key}">${value.ingredient ?? ""}</div>
-      <div class="mep-${key}">${value.miseEnPlace ?? value.amount ?? "" }</div>`;
-
-    });
-
-    // Generate HTML for the steps
-    const htmlStepContent = recipeSteps
-      .map((step) => `<div class="step-${step.id}">${step.action}</div>`)
-      .join("");
-
-    // Create style element
-    const styleElement = document.createElement("style");
-    styleElement.textContent = cssRules;
-
-    // Create container for HTML and CSS
+  render(): HTMLDivElement {
     const container = document.createElement("div");
-    container.innerHTML = htmlIngredientContent;
-    container.insertAdjacentHTML("beforeend", htmlStepContent);
+    container.innerHTML = this.generateHTML();
+    
+    const styleElement = document.createElement("style");
+    styleElement.textContent = this.generateCSS();
     container.appendChild(styleElement);
 
     return container;
   }
 
-  // Example usage:
-  function renderRecipeGrid(stepsJson: string, ingredientsJson: string): void {
-    const parsedSteps = JSON.parse(stepsJson);
-    const parsedIngredients = JSON.parse(ingredientsJson);
-    const recipeSteps: RecipeStep[] = parsedSteps.steps;
-    const ingredients: Ingredient[] = parsedIngredients.ingredients;
-    const gridContainer = generateRecipeGrid(recipeSteps, ingredients);
+  private generateCSS(): string {
+    let css = `
+      .parent {
+        grid-template-columns: repeat(${this.numberOfColumns}, 1fr);
+        grid-template-rows: repeat(${this.steps.length}, 1fr);
+      }`;
 
-    const parentDiv = document.querySelector(".parent");
-    if (parentDiv) {
-      parentDiv.append(...gridContainer.children);
-    }
+    // Step styles
+    Object.entries(this.gridPlacementSteps).forEach(([id, placement]) => {
+      css += `
+        .step-${id} {
+          grid-area: ${placement.currentGridRowStart} / ${placement.currentGridColumnStart} / ${placement.nextGridRowStart} / ${placement.nextGridColumnStart};
+          align-items: ${placement.alignItems};
+          border-bottom-right-radius: ${placement.borderRadius}px;
+        }`;
+    });
+
+    // Ingredient styles
+    Object.entries(this.gridPlacementIngredients).forEach(([key, value]) => {
+      css += `
+        .quantity-${key} {
+          grid-area: ${value.currentGridRowStart} / 1 / ${value.currentGridRowStart + 1} / 2;
+        }
+        .name-${key} {
+          grid-area: ${value.currentGridRowStart} / 2 / ${value.currentGridRowStart + 1} / 3;
+        }
+        .mep-${key} {
+          grid-area: ${value.currentGridRowStart} / 3 / ${value.currentGridRowStart + 1} / 4;
+        }`;
+    });
+
+    return css;
   }
+
+  private generateHTML(): string {
+    const ingredientHTML = Object.entries(this.gridPlacementIngredients)
+      .map(([key, value]) => `
+        <div class="quantity-${key}">${value.quantity ?? ""}</div>
+        <div class="name-${key}">${value.ingredient ?? ""}</div>
+        <div class="mep-${key}">${value.miseEnPlace ?? value.amount ?? ""}</div>
+      `)
+      .join("");
+
+    const stepsHTML = this.steps
+      .map(step => `<div class="step-${step.id}">${step.action}</div>`)
+      .join("");
+
+    return ingredientHTML + stepsHTML;
+  }
+}
+
+// Main function
+function generateRecipeGrid(recipeSteps: RecipeStep[], ingredients: Ingredient[]): HTMLDivElement {
+  const calculator = new RecipeGridCalculator(recipeSteps, ingredients);
+  const [numberOfColumns, gridPlacementSteps, gridPlacementIngredients] = calculator.calculate();
+
+  const renderer = new RecipeGridRenderer(
+    numberOfColumns,
+    gridPlacementSteps,
+    gridPlacementIngredients,
+    recipeSteps
+  );
+
+  return renderer.render();
+}
+
+// Usage function
+function renderRecipeGrid(stepsJson: string, ingredientsJson: string): void {
+  const recipeSteps: RecipeStep[] = JSON.parse(stepsJson).steps;
+  const ingredients: Ingredient[] = JSON.parse(ingredientsJson).ingredients;
+  
+  const gridContainer = generateRecipeGrid(recipeSteps, ingredients);
+  
+  const parentDiv = document.querySelector(".parent");
+  if (parentDiv) {
+    parentDiv.append(...gridContainer.children);
+  }
+}
 
   const rawIngredients = {
     ingredients: [
