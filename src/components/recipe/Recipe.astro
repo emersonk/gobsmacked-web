@@ -91,7 +91,6 @@
     let columnEndPointer = 5;
     let numIngredientsCounter = 0;
 
-
     sortedSteps.forEach((step, index) => {
       // Calculate the number of ingredients added in the step
       const numOfIngredientsAddedInStep = step.ingredients?.length ?? 0;
@@ -102,7 +101,7 @@
           let i = ingredients.find((x) => x.id === ingredient.id);
 
           gridPlacementIngredients[numIngredientsCounter] = {
-            currentGridRowStart: numIngredientsCounter+1,
+            currentGridRowStart: numIngredientsCounter + 1,
             quantity: i!.quantity,
             ingredient: i!.name,
             amount: ingredient.amount,
@@ -195,8 +194,6 @@
       }
     });
 
-    console.log(gridPlacementIngredients);
-
     // Total number
     let numberOfColumns = columnEndPointer - 1;
     return [numberOfColumns, gridPlacementSteps, gridPlacementIngredients];
@@ -280,9 +277,12 @@
           grid-area: ${value.currentGridRowStart} / 3 / ${value.currentGridRowStart + 1} / 4;
       }`;
 
-      htmlIngredientContent += `<div class="quantity-${key}">${value.quantity}</div>
-                                <div class="name-${key}">${value.ingredient}</div>
-                                <div class="mep-${key}">${value.miseEnPlace}</div>`;
+      // TODO handle situation where there is mep steps as well as an amount
+      htmlIngredientContent += `
+      <div class="quantity-${key}">${value.quantity ?? ""}</div>
+      <div class="name-${key}">${value.ingredient ?? ""}</div>
+      <div class="mep-${key}">${value.miseEnPlace ?? value.amount ?? "" }</div>`;
+
     });
 
     // Generate HTML for the steps
