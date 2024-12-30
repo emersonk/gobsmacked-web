@@ -28,7 +28,7 @@ interface Ingredient {
   notes: string | null;
 }
 
-interface GridPlacement {
+interface StepPlacement {
   currentGridRowStart: number;
   currentGridColumnStart: number;
   nextGridRowStart: number;
@@ -49,7 +49,7 @@ interface IngredientPlacement {
 class RecipeGridCalculator {
   private steps: RecipeStep[];
   private ingredients: Ingredient[];
-  private gridPlacementSteps: Record<number, GridPlacement> = {};
+  private gridPlacementSteps: Record<number, StepPlacement> = {};
   private gridPlacementIngredients: Record<number, IngredientPlacement> = {};
   private columnEndPointer = 5;
   private numIngredientsCounter = 0;
@@ -59,7 +59,7 @@ class RecipeGridCalculator {
     this.ingredients = ingredients;
   }
 
-  calculate(): [number, Record<number, GridPlacement>, Record<number, IngredientPlacement>] {
+  calculate(): [number, Record<number, StepPlacement>, Record<number, IngredientPlacement>] {
     const sortedSteps = this.topologicalSort();
     this.processSteps(sortedSteps);
     return [this.columnEndPointer - 1, this.gridPlacementSteps, this.gridPlacementIngredients];
@@ -100,7 +100,7 @@ class RecipeGridCalculator {
     nextGridColumnStart: number,
     index: number,
     sortedSteps: RecipeStep[]
-  ): GridPlacement {
+  ): StepPlacement {
     const numOfIngredientsAddedInStep = this.processStepIngredients(step);
     const numParents = step.parents?.length ?? 0;
 
@@ -143,7 +143,7 @@ class RecipeGridCalculator {
     numParents: number,
     currentGridRowStart: number,
     currentGridColumnStart: number
-  ): Pick<GridPlacement, 'currentGridRowStart' | 'currentGridColumnStart' | 'nextGridRowStart' | 'nextGridColumnStart'> {
+  ): Pick<StepPlacement, 'currentGridRowStart' | 'currentGridColumnStart' | 'nextGridRowStart' | 'nextGridColumnStart'> {
     if (numParents === 0 && numOfIngredientsAddedInStep >= 1) {
       return this.calculatePositionForNewIngredients(
         currentGridRowStart,
@@ -169,7 +169,7 @@ class RecipeGridCalculator {
   private calculatePositionForNewIngredients(
     currentGridRowStart: number,
     numOfIngredientsAdded: number
-  ): Pick<GridPlacement, 'currentGridRowStart' | 'currentGridColumnStart' | 'nextGridRowStart' | 'nextGridColumnStart'> {
+  ): Pick<StepPlacement, 'currentGridRowStart' | 'currentGridColumnStart' | 'nextGridRowStart' | 'nextGridColumnStart'> {
     return {
       currentGridRowStart,
       currentGridColumnStart: 4,
@@ -181,7 +181,7 @@ class RecipeGridCalculator {
   private calculatePositionWithParents(
     step: RecipeStep,
     numOfIngredientsAdded: number
-  ): Pick<GridPlacement, 'currentGridRowStart' | 'currentGridColumnStart' | 'nextGridRowStart' | 'nextGridColumnStart'> {
+  ): Pick<StepPlacement, 'currentGridRowStart' | 'currentGridColumnStart' | 'nextGridRowStart' | 'nextGridColumnStart'> {
     const parentPlacements = step.parents
       ?.map(parentId => this.gridPlacementSteps[parentId])
       .filter(Boolean) ?? [];
@@ -244,13 +244,13 @@ class RecipeGridCalculator {
 // HTML/CSS Generator
 class RecipeGridRenderer {
   private numberOfColumns: number;
-  private gridPlacementSteps: Record<number, GridPlacement>;
+  private gridPlacementSteps: Record<number, StepPlacement>;
   private gridPlacementIngredients: Record<number, IngredientPlacement>;
   private steps: RecipeStep[];
 
   constructor(
     numberOfColumns: number,
-    gridPlacementSteps: Record<number, GridPlacement>,
+    gridPlacementSteps: Record<number, StepPlacement>,
     gridPlacementIngredients: Record<number, IngredientPlacement>,
     steps: RecipeStep[]
   ) {
