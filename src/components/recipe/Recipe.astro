@@ -6,7 +6,7 @@
 
 <script>
   // Define interfaces for the recipe step structure
-  interface Ingredient {
+  interface StepIngredient {
     id: number;
     amount: string | null;
   }
@@ -16,10 +16,22 @@
     action: string;
     options: string | null;
     parents: number[] | null;
-    ingredients: Ingredient[] | null;
+    ingredients: StepIngredient[] | null;
   }
 
-  function calculateGridAreas(steps: RecipeStep[]): [
+  interface Ingredient {
+    id: number;
+    name: string;
+    quantity: string | null;
+    mise_en_place: string | null;
+    options: string | null;
+    notes: string | null;
+  }
+
+  function calculateGridAreas(
+    steps: RecipeStep[],
+    ingredients: Ingredient[]
+  ): [
     number,
     Record<
       number,
@@ -36,10 +48,10 @@
       number,
       {
         currentGridRowStart: number;
-        quantity: string;
+        quantity: string | null;
         ingredient: string;
-        amount: string;
-        miseEnPlace: string;
+        amount: string | null;
+        miseEnPlace: string | null;
       }
     >,
   ] {
@@ -64,10 +76,10 @@
       number,
       {
         currentGridRowStart: number;
-        quantity: string;
+        quantity: string | null;
         ingredient: string;
-        amount: string;
-        miseEnPlace: string;
+        amount: string | null;
+        miseEnPlace: string | null;
       }
     > = {};
 
@@ -77,13 +89,28 @@
     let nextGridColumnStart = 4;
 
     let columnEndPointer = 5;
+    let numIngredientsCounter = 0;
+
 
     sortedSteps.forEach((step, index) => {
       // Calculate the number of ingredients added in the step
       const numOfIngredientsAddedInStep = step.ingredients?.length ?? 0;
 
       if (numOfIngredientsAddedInStep >= 1) {
-        console.log(step.ingredients);
+        let stepIngredients = step.ingredients ?? [];
+        stepIngredients.forEach((ingredient) => {
+          let i = ingredients.find((x) => x.id === ingredient.id);
+
+          gridPlacementIngredients[numIngredientsCounter] = {
+            currentGridRowStart: numIngredientsCounter+1,
+            quantity: i!.quantity,
+            ingredient: i!.name,
+            amount: ingredient.amount,
+            miseEnPlace: i!.mise_en_place,
+          };
+
+          numIngredientsCounter++;
+        });
       }
 
       // Calculate the number of parents for the step
@@ -168,6 +195,8 @@
       }
     });
 
+    console.log(gridPlacementIngredients);
+
     // Total number
     let numberOfColumns = columnEndPointer - 1;
     return [numberOfColumns, gridPlacementSteps, gridPlacementIngredients];
@@ -211,10 +240,13 @@
   }
 
   // Main function to generate HTML and CSS
-  function generateRecipeGrid(recipeSteps: RecipeStep[]): HTMLDivElement {
+  function generateRecipeGrid(
+    recipeSteps: RecipeStep[],
+    ingredients: Ingredient[]
+  ): HTMLDivElement {
     // Calculate grid placements
     const [numberOfColumns, gridPlacementSteps, gridPlacementIngredients] =
-      calculateGridAreas(recipeSteps);
+      calculateGridAreas(recipeSteps, ingredients);
 
     // Generate CSS for parent
     let cssRules = `
@@ -234,26 +266,29 @@
       }`;
     });
 
-    // Generate CSS for ingredients
-    cssRules += `
-      .quantity-1 {
-          grid-area: 1 / 1 / 2 / 2;
+    // Generate ingredients
+    let htmlIngredientContent = ``;
+    Object.entries(gridPlacementIngredients).forEach(([key, value]) => {
+      cssRules += `
+      .quantity-${key} {
+          grid-area: ${value.currentGridRowStart} / 1 / ${value.currentGridRowStart + 1} / 2;
       }
-      .name-1 {
-          grid-area: 1 / 2 / 2 / 3;
+      .name-${key} {
+          grid-area: ${value.currentGridRowStart} / 2 / ${value.currentGridRowStart + 1} / 3;
       }
-      .mep-1 {
-          grid-area: 1 / 3 / 2 / 4;
+      .mep-${key} {
+          grid-area: ${value.currentGridRowStart} / 3 / ${value.currentGridRowStart + 1} / 4;
       }`;
+
+      htmlIngredientContent += `<div class="quantity-${key}">${value.quantity}</div>
+                                <div class="name-${key}">${value.ingredient}</div>
+                                <div class="mep-${key}">${value.miseEnPlace}</div>`;
+    });
 
     // Generate HTML for the steps
     const htmlStepContent = recipeSteps
       .map((step) => `<div class="step-${step.id}">${step.action}</div>`)
       .join("");
-
-    const htmlIngredientContent = `<div class="quantity-1">test</div>
-                                   <div class="name-1">name-1</div>
-                                   <div class="mep-1">mep-1</div>`;
 
     // Create style element
     const styleElement = document.createElement("style");
@@ -269,10 +304,12 @@
   }
 
   // Example usage:
-  function renderRecipeGrid(jsonString: string): void {
-    const parsedData = JSON.parse(jsonString);
-    const recipeSteps: RecipeStep[] = parsedData.steps;
-    const gridContainer = generateRecipeGrid(recipeSteps);
+  function renderRecipeGrid(stepsJson: string, ingredientsJson: string): void {
+    const parsedSteps = JSON.parse(stepsJson);
+    const parsedIngredients = JSON.parse(ingredientsJson);
+    const recipeSteps: RecipeStep[] = parsedSteps.steps;
+    const ingredients: Ingredient[] = parsedIngredients.ingredients;
+    const gridContainer = generateRecipeGrid(recipeSteps, ingredients);
 
     const parentDiv = document.querySelector(".parent");
     if (parentDiv) {
@@ -280,7 +317,7 @@
     }
   }
 
-  const ingredients = {
+  const rawIngredients = {
     ingredients: [
       {
         id: 1,
@@ -460,6 +497,5 @@
     ],
   };
 
-  const jsonString = JSON.stringify(recipeSteps);
-  renderRecipeGrid(jsonString);
+  renderRecipeGrid(JSON.stringify(recipeSteps), JSON.stringify(rawIngredients));
 </script>
