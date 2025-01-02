@@ -57,10 +57,16 @@ class RecipeGridCalculator {
   private gridPlacementIngredients: Record<number, IngredientPlacement> = {};
   private columnEndPointer = 5;
   private numIngredientsCounter = 0;
+  private lastStepColor: string;
+  private lastColorClass: string;
 
   constructor(steps: RecipeStep[], ingredients: Ingredient[]) {
     this.steps = steps;
     this.ingredients = ingredients;
+
+    // Initialize with default values
+    this.lastStepColor = this.getRandomHexColor();
+    this.lastColorClass = this.generateColorClassName();
   }
 
   calculate(): [number, Record<number, StepPlacement>, Record<number, IngredientPlacement>] {
@@ -89,6 +95,12 @@ class RecipeGridCalculator {
       if (step.parents?.length ?? 0 >= 1) {
         this.columnEndPointer++;
       }
+
+      // Store the colors for next iteration if new ingredients were added
+      if (step.ingredients?.length ?? 0 > 0) {
+        this.lastStepColor = placement.backgroundColor;
+        this.lastColorClass = placement.colorClass;
+      }
     });
   }
 
@@ -99,8 +111,10 @@ class RecipeGridCalculator {
     index: number,
     sortedSteps: RecipeStep[]
   ): StepPlacement {
-    const stepColor = this.getRandomHexColor();
-    const colorClass = this.generateColorClassName();
+    // Only generate new colors if there are new ingredients
+    const hasNewIngredients = step.ingredients?.length ?? 0 > 0;
+    const stepColor = hasNewIngredients ? this.getRandomHexColor() : this.lastStepColor;
+    const colorClass = hasNewIngredients ? this.generateColorClassName() : this.lastColorClass;
 
     const numOfIngredientsAddedInStep = this.processStepIngredients(step, stepColor, colorClass);
     const numParents = step.parents?.length ?? 0;
@@ -116,7 +130,6 @@ class RecipeGridCalculator {
     return {
       ...gridPosition,
       borderRadius: this.calculateBorderRadius(index, sortedSteps),
-      // TODO need a better method to determine position of elements
       alignItems: numOfIngredientsAddedInStep === 1 ? "end" : "center",
       backgroundColor: stepColor,
       colorClass: colorClass
