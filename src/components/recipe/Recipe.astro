@@ -35,6 +35,8 @@ interface StepPlacement {
   nextGridColumnStart: number;
   borderRadius: number;
   alignItems: string;
+  backgroundColor: string;
+  colorClass: string;
 }
 
 interface IngredientPlacement {
@@ -97,7 +99,10 @@ class RecipeGridCalculator {
     index: number,
     sortedSteps: RecipeStep[]
   ): StepPlacement {
-    const numOfIngredientsAddedInStep = this.processStepIngredients(step);
+    const stepColor = this.getRandomHexColor();
+    const colorClass = this.generateColorClassName();
+
+    const numOfIngredientsAddedInStep = this.processStepIngredients(step, stepColor, colorClass);
     const numParents = step.parents?.length ?? 0;
 
     const gridPosition = this.calculateGridPosition(
@@ -112,14 +117,14 @@ class RecipeGridCalculator {
       ...gridPosition,
       borderRadius: this.calculateBorderRadius(index, sortedSteps),
       // TODO need a better method to determine position of elements
-      alignItems: numOfIngredientsAddedInStep === 1 ? "end" : "center"
+      alignItems: numOfIngredientsAddedInStep === 1 ? "end" : "center",
+      backgroundColor: stepColor,
+      colorClass: colorClass
     };
   }
 
-  private processStepIngredients(step: RecipeStep): number {
+  private processStepIngredients(step: RecipeStep, stepColor: string, colorClass: string): number {
     const stepIngredients = step.ingredients ?? [];
-    const stepColor = this.getRandomHexColor();
-    const colorClass = this.generateColorClassName();
     stepIngredients.forEach(ingredient => {
       const fullIngredient = this.ingredients.find(x => x.id === ingredient.id);
       if (fullIngredient) {
@@ -289,13 +294,26 @@ class RecipeGridRenderer {
         grid-template-rows: repeat(${this.steps.length}, 1fr);
       }`;
 
+    // Calculate the highest z-index needed 
+    // Adding 10 to make sure we have some buffer room
+    const maxZIndex = this.steps.length + 10;
+
     // Step styles
     Object.entries(this.gridPlacementSteps).forEach(([id, placement]) => {
+      const stepNumber = parseInt(id);
+      // Calculate z-index: first step gets highest value
+      const zIndex = maxZIndex - stepNumber;
+
       css += `
         .step-${id} {
           grid-area: ${placement.currentGridRowStart} / ${placement.currentGridColumnStart} / ${placement.nextGridRowStart} / ${placement.nextGridColumnStart};
           align-items: ${placement.alignItems};
           border-bottom-right-radius: ${placement.borderRadius}px;
+          z-index: ${zIndex};
+          position: relative;
+        }        
+        .${placement.colorClass} {
+          background-color: #${placement.backgroundColor};
         }`;
     });
 
@@ -304,12 +322,18 @@ class RecipeGridRenderer {
       css += `
         .quantity-${key} {
           grid-area: ${value.currentGridRowStart} / 1 / ${value.currentGridRowStart + 1} / 2;
+          position: relative;
+          z-index: ${maxZIndex}; /* Ingredients should appear on top */
         }
         .name-${key} {
           grid-area: ${value.currentGridRowStart} / 2 / ${value.currentGridRowStart + 1} / 3;
+          position: relative;
+          z-index: ${maxZIndex};
         }
         .mep-${key} {
           grid-area: ${value.currentGridRowStart} / 3 / ${value.currentGridRowStart + 1} / 4;
+          position: relative;
+          z-index: ${maxZIndex};
         }
         .${value.colorClass} {
           background-color: #${value.backgroundColor};
@@ -329,7 +353,7 @@ class RecipeGridRenderer {
       .join("");
 
     const stepsHTML = this.steps
-      .map(step => `<div class="step-${step.id}">${step.action}</div>`)
+      .map(step => `<div class="items-center ${this.gridPlacementSteps[step.id].colorClass} step-${step.id}">${step.action}</div>`)
       .join("");
 
     return ingredientHTML + stepsHTML;
