@@ -57,6 +57,7 @@ class RecipeGridCalculator {
   private gridPlacementIngredients: Record<number, IngredientPlacement> = {};
   private columnEndPointer = 5;
   private numIngredientsCounter = 0;
+  private colorSteps: string[];
   private lastStepColor: string;
   private lastColorClass: string;
 
@@ -65,8 +66,9 @@ class RecipeGridCalculator {
     this.ingredients = ingredients;
 
     // Initialize with default values
-    this.lastStepColor = this.getRandomHexColor();
+    this.lastStepColor = 'FFF'
     this.lastColorClass = this.generateColorClassName();
+    this.colorSteps = this.generateMonochromaticPalette(this.steps.length);
   }
 
   calculate(): [number, Record<number, StepPlacement>, Record<number, IngredientPlacement>] {
@@ -113,7 +115,7 @@ class RecipeGridCalculator {
   ): StepPlacement {
     // Only generate new colors if there are new ingredients
     const hasNewIngredients = step.ingredients?.length ?? 0 > 0;
-    const stepColor = hasNewIngredients ? this.getRandomHexColor() : this.lastStepColor;
+    const stepColor = hasNewIngredients ? this.colorSteps[index] : this.lastStepColor;
     const colorClass = hasNewIngredients ? this.generateColorClassName() : this.lastColorClass;
 
     const numOfIngredientsAddedInStep = this.processStepIngredients(step, stepColor, colorClass);
@@ -156,9 +158,50 @@ class RecipeGridCalculator {
     return stepIngredients.length;
   }
 
-  private getRandomHexColor(): string {
-    const randomColor = Math.floor(Math.random() * 16777215).toString(16);
-    return `${randomColor.padStart(6, '0')}`;
+  /**
+   * Generates a monochromatic hex color palette.
+   * @param baseColor - The base hex color (e.g., "#3498db").
+   * @param steps - The number of color steps to generate.
+   * @returns An array of hex colors ordered from lightest to darkest.
+   */
+  private generateMonochromaticPalette(steps: number): string[] {
+    const baseColor = '#aa5903' 
+
+    // Helper function to convert hex to RGB
+    const hexToRgb = (hex: string): [number, number, number] => {
+        hex = hex.replace("#", "");
+        const bigint = parseInt(hex, 16);
+        return [(bigint >> 16) & 255, (bigint >> 8) & 255, bigint & 255];
+    };
+
+    // Helper function to convert RGB to hex
+    const rgbToHex = (r: number, g: number, b: number): string => {
+        const toHex = (value: number) => value.toString(16).padStart(2, "0");
+        return `${toHex(r)}${toHex(g)}${toHex(b)}`;
+    };
+
+    // Ensure valid input
+    if (!/^#([0-9a-fA-F]{6})$/.test(baseColor)) {
+        throw new Error("Invalid hex color format. Use #RRGGBB.");
+    }
+    if (steps < 2) {
+        throw new Error("Number of steps must be at least 2.");
+    }
+
+    // Convert the base color to RGB
+    const [baseR, baseG, baseB] = hexToRgb(baseColor);
+
+    // Create a palette by interpolating between light and the base color
+    const palette: string[] = [];
+    for (let i = 0; i < steps; i++) {
+        const factor = i / (steps - 1); // 0 for lightest, 1 for darkest
+        const r = Math.round(baseR + (255 - baseR) * (1 - factor));
+        const g = Math.round(baseG + (255 - baseG) * (1 - factor));
+        const b = Math.round(baseB + (255 - baseB) * (1 - factor));
+        palette.push(rgbToHex(r, g, b));
+    }
+
+    return palette;
   }
 
   private generateColorClassName(): string {
