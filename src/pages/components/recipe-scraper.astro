@@ -3,173 +3,166 @@
 ---
 
 <html lang="en">
-<head>
+  <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width" />
     <title>Recipe Scraper</title>
     <style>
-        .container {
-            max-width: 800px;
-            margin: 2rem auto;
-            padding: 0 1rem;
-        }
-        .form {
-            display: flex;
-            flex-direction: column;
-            gap: 1rem;
-            margin-bottom: 2rem;
-        }
-        .input {
-            padding: 0.75rem;
-            font-size: 1rem;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-        }
-        .button {
-            padding: 0.75rem 1rem;
-            background-color: #4CAF50;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-        .button:disabled {
-            background-color: #cccccc;
-            cursor: not-allowed;
-        }
-        .recipe-display {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 2rem;
-        }
-        .recipe-section {
-            padding: 1rem;
-            border-radius: 8px;
-            background-color: #f5f5f5;
-        }
-        .loading {
-            text-align: center;
-            padding: 2rem;
-        }
-        .error {
-            color: #dc3545;
-            padding: 1rem;
-            border-radius: 4px;
-            background-color: #f8d7da;
-        }
-        .recipe-image {
-            max-width: 100%;
-            height: auto;
-            border-radius: 8px;
-        }
+      .container {
+        max-width: 800px;
+        margin: 2rem auto;
+        padding: 0 1rem;
+      }
+      .form {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        margin-bottom: 2rem;
+      }
+      .input {
+        padding: 0.75rem;
+        font-size: 1rem;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+      }
+      .button {
+        padding: 0.75rem 1rem;
+        background-color: #4caf50;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+      .button:disabled {
+        background-color: #cccccc;
+        cursor: not-allowed;
+      }
+      .recipe-display {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 2rem;
+      }
+      .recipe-section {
+        padding: 1rem;
+        border-radius: 8px;
+        background-color: #f5f5f5;
+      }
+      .loading {
+        text-align: center;
+        padding: 2rem;
+      }
+      .error {
+        color: #dc3545;
+        padding: 1rem;
+        border-radius: 4px;
+        background-color: #f8d7da;
+      }
+      .recipe-image {
+        max-width: 100%;
+        height: auto;
+        border-radius: 8px;
+      }
     </style>
-</head>
-<body>
+  </head>
+  <body>
     <div class="container">
-        <h1>Recipe Scraper</h1>
-        <form class="form" id="recipeForm">
-            <input 
-                type="url" 
-                id="recipeUrl" 
-                class="input" 
-                placeholder="Enter recipe URL"
-                required
-            />
-            <button type="submit" class="button" id="submitButton">Scrape Recipe</button>
-        </form>
-        <div id="loading" class="loading" style="display: none;">
-            Processing recipe...
+      <h1>Recipe Scraper</h1>
+      <form class="form" id="recipeForm">
+        <input
+          type="url"
+          id="recipeUrl"
+          class="input"
+          placeholder="Enter recipe URL"
+          required
+        />
+        <button type="submit" class="button" id="submitButton"
+          >Scrape Recipe</button
+        >
+      </form>
+      <div id="loading" class="loading" style="display: none;">
+        Processing recipe...
+      </div>
+      <div id="error" class="error" style="display: none;"></div>
+      <div id="recipeResult" class="recipe-display" style="display: none;">
+        <div class="recipe-section">
+          <h2>Recipe Details</h2>
+          <img
+            id="recipeImage"
+            class="recipe-image"
+            alt="Recipe"
+            style="display: none;"
+          />
+          <p><strong>Title:</strong> <span id="recipeTitle"></span></p>
+          <p><strong>Total Time:</strong> <span id="recipeTime"></span></p>
+          <p><strong>Yields:</strong> <span id="recipeYield"></span></p>
         </div>
-        <div id="error" class="error" style="display: none;"></div>
-        <div id="recipeResult" class="recipe-display" style="display: none;">
-            <div class="recipe-section">
-                <h2>Recipe Details</h2>
-                <img id="recipeImage" class="recipe-image" alt="Recipe" style="display: none;" />
-                <p><strong>Title:</strong> <span id="recipeTitle"></span></p>
-                <p><strong>Total Time:</strong> <span id="recipeTime"></span></p>
-                <p><strong>Yields:</strong> <span id="recipeYield"></span></p>
-            </div>
-            
-            <div class="recipe-section">
-                <h2>Ingredients</h2>
-                <div id="ingredients"></div>
-            </div>
-            
-            <div class="recipe-section">
-                <h2>Instructions</h2>
-                <div id="steps"></div>
-            </div>
+
+        <div class="recipe-section">
+          <h2>Ingredients</h2>
+          <div id="ingredients"></div>
         </div>
+
+        <div class="recipe-section">
+          <h2>Instructions</h2>
+          <div id="steps"></div>
+        </div>
+      </div>
     </div>
 
     <script>
-        const form = document.getElementById('recipeForm');
-        const loading = document.getElementById('loading');
-        const error = document.getElementById('error');
-        const result = document.getElementById('recipeResult');
-        const submitButton = document.getElementById('submitButton');
+      import { fetchRecipe } from "../../scripts/api";
+      import {
+        processRecipeData,
+        formatIngredients,
+        formatSteps,
+      } from "../../scripts/recipeProcessing";
+      import { toggleUIElements } from "../../scripts/uiHelpers";
 
-        form.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            
-            const url = document.getElementById('recipeUrl').value;
-            
-            // Reset UI
-            error.style.display = 'none';
-            result.style.display = 'none';
-            loading.style.display = 'block';
-            submitButton.disabled = true;
-            
-            try {
-                const response = await fetch('http://localhost:8000/scrape-and-format', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ url: url }),
-                });
+      const form = document.getElementById("recipeForm");
 
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault();
 
-                const data = await response.json();
-                
-                // Update UI with recipe data
-                document.getElementById('recipeTitle').textContent = data.original_recipe.title;
-                document.getElementById('recipeTime').textContent = `${data.original_recipe.total_time} minutes`;
-                document.getElementById('recipeYield').textContent = data.original_recipe.yields;
-                
-                // Handle image
-                const recipeImage = document.getElementById('recipeImage');
-                if (data.original_recipe.image) {
-                    recipeImage.src = data.original_recipe.image;
-                    recipeImage.style.display = 'block';
-                }
+        const url = document.getElementById("recipeUrl").value;
+        toggleUIElements.showLoading();
 
-                // Parse and display structured ingredients
-                const ingredientsData = JSON.parse(data.ingredients);
-                const ingredientsDiv = document.getElementById('ingredients');
-                ingredientsDiv.innerHTML = ingredientsData.ingredients
-                    .map(ing => `<p>• ${ing.amount} ${ing.unit} ${ing.ingredient}</p>`)
-                    .join('');
+        try {
+          const data = await fetchRecipe(url);
+          const processed = processRecipeData(data);
 
-                // Parse and display structured steps
-                const stepsData = JSON.parse(data.steps);
-                const stepsDiv = document.getElementById('steps');
-                stepsDiv.innerHTML = stepsData.steps
-                    .map((step, index) => `<p>${index + 1}. ${step}</p>`)
-                    .join('');
+          console.log(data);
+          console.log(processed);
 
-                result.style.display = 'grid';
-            } catch (error) {
-                error.textContent = `Error: ${error.message}`;
-                error.style.display = 'block';
-            } finally {
-                loading.style.display = 'none';
-                submitButton.disabled = false;
-            }
-        });
+          // Update recipe details
+          document.getElementById("recipeTitle").textContent =
+            data.original_recipe.title;
+          document.getElementById("recipeTime").textContent =
+            `${data.original_recipe.total_time} minutes`;
+          document.getElementById("recipeYield").textContent =
+            data.original_recipe.yields;
+
+          // Handle image
+          const recipeImage = document.getElementById("recipeImage");
+          if (data.original_recipe.image) {
+            recipeImage.src = data.original_recipe.image;
+            recipeImage.style.display = "block";
+          }
+
+          // Update ingredients and steps
+          document.getElementById("ingredients").innerHTML = formatIngredients(
+            processed.ingredients.ingredients
+          );
+          document.getElementById("steps").innerHTML = formatSteps(
+            processed.steps.steps
+          );
+
+          toggleUIElements.showResult();
+        } catch (error) {
+          toggleUIElements.showError(error.message);
+        } finally {
+          toggleUIElements.hideLoading();
+        }
+      });
     </script>
-</body>
+  </body>
 </html>
