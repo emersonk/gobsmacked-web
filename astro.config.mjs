@@ -3,6 +3,8 @@ import tailwind from "@astrojs/tailwind";
 import sitemap from "@astrojs/sitemap";
 import mdx from "@astrojs/mdx";
 
+import node from "@astrojs/node";
+
 // https://astro.build/config
 export default defineConfig({
   markdown: {
@@ -11,10 +13,18 @@ export default defineConfig({
       theme: "css-variables"
     }
   },
+
   shikiConfig: {
     wrap: true,
     skipInline: false,
     drafts: true
   },
-  integrations: [tailwind(), sitemap(), mdx()]
+
+  integrations: [tailwind(), sitemap(), mdx()],
+  
+  output: 'static',
+
+  adapter: node({
+    mode: "standalone"
+  })
 });
