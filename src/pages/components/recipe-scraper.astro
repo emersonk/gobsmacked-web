@@ -1,66 +1,62 @@
 ---
 // src/pages/recipe-scraper.astro
 import BaseLayout from "@/layouts/BaseLayout.astro";
+import { databases } from "@/lib/appwrite";
+
+interface RecipeData {
+    url: string;
+}
+
+// Template vars
+let recipeData: RecipeData | null = null;
+let error: string | null = null;
+
+// Server-side form handling
+if (Astro.request.method === 'POST') {
+    try {
+        const formData = await Astro.request.formData();
+        const recipeUrl = formData.get('recipeUrl');
+        
+        if (typeof recipeUrl !== 'string') {
+            throw new Error('Recipe URL must be a string');
+        }
+
+        recipeData = {
+            url: recipeUrl
+        };
+
+        console.log(recipeUrl);
+        return Astro.redirect('/components/recipe-scraper');
+    } catch (err) {
+        error = `Failed to process recipe: ${err instanceof Error ? err.message : 'Unknown error'}`;
+    }
+}
 ---
+
 <BaseLayout>
     <div class="container">
         <h1>Recipe Scraper</h1>
-        <form class="form" id="recipeForm">
-          <input
-            type="url"
-            id="recipeUrl"
-            class="input"
-            placeholder="Enter recipe URL"
-            required
-          />
-          <button type="submit" class="button" id="submitButton">Scrape Recipe</button
-          >
-        </form>
-        <div id="loading" class="loading" style="display: none;">
-          Processing recipe...
-        </div>
-        <div id="error" class="error" style="display: none;"></div>
-        <div id="recipeResult" class="recipe-display" style="display: none;">
-          <div class="recipe-section">
-            <h2>Recipe Details</h2>
-            <img
-              id="recipeImage"
-              class="recipe-image"
-              alt="Recipe"
-              style="display: none;"
+        
+        <form method="POST" class="form">
+            <input
+                type="url"
+                name="recipeUrl"
+                class="input"
+                placeholder="Enter recipe URL"
+                required
             />
-            <p><strong>Title:</strong> <span id="recipeTitle"></span></p>
-            <p><strong>Total Time:</strong> <span id="recipeTime"></span></p>
-            <p><strong>Yields:</strong> <span id="recipeYield"></span></p>
-          </div>
-      
-          <div class="parent"></div>
-        </div>
-      </div>
-      
-      <script>
-        import { fetchRecipe } from "../../scripts/api";
-        import { renderRecipeGrid } from "../../scripts/recipeProcessing";
-        import { toggleUIElements } from "../../scripts/uiHelpers";
-      
-        const form = document.getElementById("recipeForm")!;
-      
-        form.addEventListener("submit", async (e) => {
-          e.preventDefault();
-      
-          const url = (document.getElementById("recipeUrl") as HTMLInputElement).value;
-          toggleUIElements.showLoading();
-      
-          try {
-            const data = await fetchRecipe(url);
-            renderRecipeGrid(data.steps, data.ingredients);
-            toggleUIElements.showResult();
-          } catch (error) {
-            toggleUIElements.showError(error.message);
-          } finally {
-            toggleUIElements.hideLoading();
-          }
-        });
-      </script>
-      
+            <button type="submit" class="button">Scrape Recipe</button>
+        </form>
+
+        {error && <div class="error">{error}</div>}
+
+        {recipeData && (
+            <div class="recipe-display">
+                <div class="recipe-section">
+                    <h2>Recipe Details</h2>
+                    <p>URL submitted: {recipeData.url}</p>
+                </div>
+            </div>
+        )}
+    </div>
 </BaseLayout>

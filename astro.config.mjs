@@ -21,8 +21,8 @@ export default defineConfig({
   },
 
   integrations: [tailwind(), sitemap(), mdx()],
-  
-  output: 'static',
+
+  output: 'server',
 
   adapter: node({
     mode: "standalone"
