@@ -1,11 +1,17 @@
 ---
-// src/pages/recipe-scraper.astro
 import BaseLayout from "@/layouts/BaseLayout.astro";
 import { databases } from "@/lib/appwrite";
 import { ID, Query } from "appwrite";
 import { fetchRecipe } from "@/scripts/api";
+import { createHash } from 'crypto';
 
 let error: string | null = null;
+
+function hashString(input: string): string {
+    const hash = createHash('md5');
+    hash.update(input);
+    return hash.digest('hex');
+}
 
 // Server-side form handling
 if (Astro.request.method === "POST") {
@@ -16,8 +22,6 @@ if (Astro.request.method === "POST") {
     if (typeof recipeUrl !== "string") {
       throw new Error("Recipe URL must be a string");
     }
-
-    // TODO generate a hash from the URL and use that as the slug
 
     // Check if the URL already exists in the DB
     const r = await databases.listDocuments(
@@ -30,27 +34,35 @@ if (Astro.request.method === "POST") {
 
     if (r.total === 1){
       // Load recipe from database and redirect to page
+      const recipe = r.documents[0]
+      return Astro.redirect(`/components/${recipe.Slug}`);
     } else {
       // Format recipe, save to database,
       const formattedRecipe = await fetchRecipe(recipeUrl);
+      const hashedValue = hashString('recipeUrl');
+      const urlSafeTitle = formattedRecipe.original_recipe.title
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9\s-]/g, '')
+        .replace(/\s+/g, '-');
 
       const data = {
         OriginalURL: recipeUrl,
         Ingredients: formattedRecipe.ingredients,
         Steps: formattedRecipe.steps,
+        Slug: `${urlSafeTitle}-${hashedValue}`
       };
 
+      // TODO handle errors when saving
       const results = await databases.createDocument(
         import.meta.env.PUBLIC_APPWRITE_DATABASE_ID,
         import.meta.env.PUBLIC_APPWRITE_COLLECTION_ID,
         ID.unique(),
         data
       );
-    }
 
-    // TODO this will send it to the recipe display page which will then render the recipe from the database
-    // TODO pass the ingredients & steps to the new page so that it doesn't have to go to database
-    return Astro.redirect(`/components/slugTest`);
+      return Astro.redirect(`/components/${data.Slug}`);
+    }
   } catch (err) {
     error = `Failed to process recipe: ${err instanceof Error ? err.message : "Unknown error"}`;
   }

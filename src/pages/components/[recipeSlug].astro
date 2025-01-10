@@ -1,6 +1,47 @@
 ---
-const { recipeSlug } = Astro.params;
+import BaseLayout from "@/layouts/BaseLayout.astro";
+import { databases } from "@/lib/appwrite";
+import { Query } from "appwrite";
 
-console.log(String(recipeSlug));
+const { recipeSlug } = Astro.params;
+const r = await databases.listDocuments(
+  import.meta.env.PUBLIC_APPWRITE_DATABASE_ID,
+  import.meta.env.PUBLIC_APPWRITE_COLLECTION_ID,
+  [Query.equal("Slug", String(recipeSlug))]
+);
+
+if (r.total === 0) {
+  return Astro.redirect("/404");
+}
+
+const data = r.documents[0];
 ---
-<h1>Hi</h1>
+
+<BaseLayout>
+  <div
+    class="parent"
+    data-steps={data.Steps}
+    data-ingredients={data.Ingredients}
+  >
+  </div>
+
+  <script>
+    import { renderRecipeGrid } from "../../scripts/recipeProcessing";
+
+    const container = document.querySelector(".parent") as HTMLDivElement;
+    if (!container) {
+      console.error('Recipe container not found');
+      throw new Error('Recipe container not found');
+    }
+
+    const steps = container.dataset.steps;
+    const ingredients = container.dataset.ingredients;
+
+    if (!steps || !ingredients) {
+      console.error('Recipe data not found');
+      throw new Error('Recipe data not found');
+    }
+
+    renderRecipeGrid(steps, ingredients);
+  </script>
+</BaseLayout>
