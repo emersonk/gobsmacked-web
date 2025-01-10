@@ -424,12 +424,8 @@ function generateRecipeGrid(recipeSteps: RecipeStep[], ingredients: Ingredient[]
 
 // Usage function
 export function renderRecipeGrid(stepsJson: string, ingredientsJson: string): void {
-    console.log(stepsJson)
-    console.log(JSON.parse(stepsJson))
     const recipeSteps: RecipeStep[] = JSON.parse(stepsJson).steps;
-    console.log(recipeSteps);
     const ingredients: Ingredient[] = JSON.parse(ingredientsJson).ingredients;
-    console.log(ingredients);
 
     const gridContainer = generateRecipeGrid(recipeSteps, ingredients);
 

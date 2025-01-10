@@ -2,7 +2,8 @@
 // src/pages/recipe-scraper.astro
 import BaseLayout from "@/layouts/BaseLayout.astro";
 import { databases } from "@/lib/appwrite";
-import { ID } from 'appwrite';
+import { ID, Query } from "appwrite";
+import { fetchRecipe } from "@/scripts/api";
 
 let error: string | null = null;
 
@@ -16,21 +17,40 @@ if (Astro.request.method === "POST") {
       throw new Error("Recipe URL must be a string");
     }
 
-    const data = {
-      OriginalURL: recipeUrl,
-      Ingredients: null,
-      Steps: null
-    };
+    // TODO generate a hash from the URL and use that as the slug
 
-    const results = await databases.createDocument(
+    // Check if the URL already exists in the DB
+    const r = await databases.listDocuments(
       import.meta.env.PUBLIC_APPWRITE_DATABASE_ID,
       import.meta.env.PUBLIC_APPWRITE_COLLECTION_ID,
-      ID.unique(),
-      data
+      [
+        Query.equal("OriginalURL", recipeUrl)
+      ]
     );
 
-    console.log(recipeUrl);
-    return Astro.redirect("/components/recipe-scraper");
+    if (r.total === 1){
+      // Load recipe from database and redirect to page
+    } else {
+      // Format recipe, save to database,
+      const formattedRecipe = await fetchRecipe(recipeUrl);
+
+      const data = {
+        OriginalURL: recipeUrl,
+        Ingredients: formattedRecipe.ingredients,
+        Steps: formattedRecipe.steps,
+      };
+
+      const results = await databases.createDocument(
+        import.meta.env.PUBLIC_APPWRITE_DATABASE_ID,
+        import.meta.env.PUBLIC_APPWRITE_COLLECTION_ID,
+        ID.unique(),
+        data
+      );
+    }
+
+    // TODO this will send it to the recipe display page which will then render the recipe from the database
+    // TODO pass the ingredients & steps to the new page so that it doesn't have to go to database
+    return Astro.redirect(`/components/slugTest`);
   } catch (err) {
     error = `Failed to process recipe: ${err instanceof Error ? err.message : "Unknown error"}`;
   }
