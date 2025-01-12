@@ -50,7 +50,8 @@ if (Astro.request.method === "POST") {
         OriginalURL: recipeUrl,
         Ingredients: formattedRecipe.ingredients,
         Steps: formattedRecipe.steps,
-        Slug: `${urlSafeTitle}-${hashedValue}`
+        Slug: `${urlSafeTitle}-${hashedValue}`,
+        Title: formattedRecipe.original_recipe.title
       };
 
       // TODO handle errors when saving
