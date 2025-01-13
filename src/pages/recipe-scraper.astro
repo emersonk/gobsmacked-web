@@ -2,7 +2,7 @@
 import BaseLayout from "@/layouts/BaseLayout.astro";
 import { databases } from "@/lib/appwrite";
 import { ID, Query } from "appwrite";
-import { fetchRecipe } from "@/scripts/api";
+import { fetchRecipe } from "@/lib/api";
 import { createHash } from 'crypto';
 
 let error: string | null = null;
@@ -35,7 +35,7 @@ if (Astro.request.method === "POST") {
     if (r.total === 1){
       // Load recipe from database and redirect to page
       const recipe = r.documents[0]
-      return Astro.redirect(`/components/${recipe.Slug}`);
+      return Astro.redirect(`/recipes/${recipe.Slug}`);
     } else {
       // Format recipe, save to database,
       const formattedRecipe = await fetchRecipe(recipeUrl);
@@ -62,7 +62,7 @@ if (Astro.request.method === "POST") {
         data
       );
 
-      return Astro.redirect(`/components/${data.Slug}`);
+      return Astro.redirect(`/recipes/${data.Slug}`);
     }
   } catch (err) {
     error = `Failed to process recipe: ${err instanceof Error ? err.message : "Unknown error"}`;
