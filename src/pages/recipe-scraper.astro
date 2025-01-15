@@ -23,7 +23,7 @@ if (Astro.request.method === "POST") {
     }
 
     const r = await databaseService.findRecipeByUrl(recipeUrl);
-    console.log(r);
+
     if (r.documents.length === 1) {
       // Load recipe from database and redirect to page
       const recipe = r.documents[0];
