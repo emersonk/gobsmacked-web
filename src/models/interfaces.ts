@@ -1,3 +1,4 @@
+// types.ts
 export interface StepIngredient {
     id: number;
     amount: string | null;
@@ -39,4 +40,22 @@ export interface IngredientPlacement {
     miseEnPlace: string | null;
     backgroundColor: string;
     colorClass: string;
+}
+
+export interface Recipe {
+    id: string;
+    OriginalURL?: string;
+    Slug?: string;
+    title: string;
+    description?: string;
+    servings?: number;
+    prepTime?: string;
+    cookTime?: string;
+    totalTime?: string;
+    ingredients: Ingredient[];
+    steps: RecipeStep[];
+    stepPlacements?: StepPlacement[];
+    ingredientPlacements?: IngredientPlacement[];
+    createdAt: string;
+    updatedAt: string;
 }

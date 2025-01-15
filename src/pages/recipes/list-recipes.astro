@@ -1,11 +1,8 @@
 ---
-import { databases } from "@/lib/appwrite";
+import { databaseService } from "@/api/DatabaseService";
 import BaseLayout from "@/layouts/BaseLayout.astro";
 
-const { documents: recipes } = await databases.listDocuments(
-  import.meta.env.PUBLIC_APPWRITE_DATABASE_ID,
-  import.meta.env.PUBLIC_APPWRITE_COLLECTION_ID
-);
+const { documents: recipes } = await databaseService.getAllRecipes();
 ---
 
 <BaseLayout>

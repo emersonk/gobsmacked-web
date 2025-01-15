@@ -1,8 +1,8 @@
 ---
 import BaseLayout from "@/layouts/BaseLayout.astro";
-import { databases } from "@/lib/appwrite";
+import { databases } from "@/api/DatabaseService";
 import { ID, Query } from "appwrite";
-import { fetchRecipe } from "@/lib/api";
+import { fetchRecipe } from "@/api/RecipeService";
 import { createHash } from 'crypto';
 
 let error: string | null = null;
