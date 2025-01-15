@@ -1,27 +1,20 @@
 ---
 import BaseLayout from "@/layouts/BaseLayout.astro";
-import { databases } from "@/api/DatabaseService";
-import { Query } from "appwrite";
+import { databaseService } from "@/api/DatabaseService";
 
 const { recipeSlug } = Astro.params;
-const r = await databases.listDocuments(
-  import.meta.env.PUBLIC_APPWRITE_DATABASE_ID,
-  import.meta.env.PUBLIC_APPWRITE_COLLECTION_ID,
-  [Query.equal("Slug", String(recipeSlug))]
-);
+const recipe = await databaseService.findRecipeBySlug(String(recipeSlug));
 
-if (r.total === 0) {
+if (recipe.total === 0) {
   return Astro.redirect("/404");
 }
-
-const data = r.documents[0];
 ---
 
 <BaseLayout>
   <div
     class="parent"
-    data-steps={data.Steps}
-    data-ingredients={data.Ingredients}
+    data-steps={recipe.Steps}
+    data-ingredients={recipe.Ingredients}
   >
   </div>
 

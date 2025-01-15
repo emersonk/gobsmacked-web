@@ -1,16 +1,15 @@
 ---
 import BaseLayout from "@/layouts/BaseLayout.astro";
-import { databases } from "@/api/DatabaseService";
-import { ID, Query } from "appwrite";
+import { databaseService } from "@/api/DatabaseService";
 import { fetchRecipe } from "@/api/RecipeService";
-import { createHash } from 'crypto';
+import { createHash } from "crypto";
 
 let error: string | null = null;
 
 function hashString(input: string): string {
-    const hash = createHash('md5');
-    hash.update(input);
-    return hash.digest('hex');
+  const hash = createHash("md5");
+  hash.update(input);
+  return hash.digest("hex");
 }
 
 // Server-side form handling
@@ -23,48 +22,43 @@ if (Astro.request.method === "POST") {
       throw new Error("Recipe URL must be a string");
     }
 
-    // Check if the URL already exists in the DB
-    const r = await databases.listDocuments(
-      import.meta.env.PUBLIC_APPWRITE_DATABASE_ID,
-      import.meta.env.PUBLIC_APPWRITE_COLLECTION_ID,
-      [
-        Query.equal("OriginalURL", recipeUrl)
-      ]
-    );
-
-    if (r.total === 1){
+    const r = await databaseService.findRecipeByUrl(recipeUrl);
+    console.log(r);
+    if (r.documents.length === 1) {
       // Load recipe from database and redirect to page
-      const recipe = r.documents[0]
+      const recipe = r.documents[0];
       return Astro.redirect(`/recipes/${recipe.Slug}`);
     } else {
       // Format recipe, save to database,
       const formattedRecipe = await fetchRecipe(recipeUrl);
-      const hashedValue = hashString('recipeUrl');
+      const hashedValue = hashString(recipeUrl);
       const urlSafeTitle = formattedRecipe.original_recipe.title
         .trim()
         .toLowerCase()
-        .replace(/[^a-z0-9\s-]/g, '')
-        .replace(/\s+/g, '-');
+        .replace(/[^a-z0-9\s-]/g, "")
+        .replace(/\s+/g, "-");
 
+      // TODO would rather this be a model somewherre
       const data = {
         OriginalURL: recipeUrl,
         Ingredients: formattedRecipe.ingredients,
         Steps: formattedRecipe.steps,
         Slug: `${urlSafeTitle}-${hashedValue}`,
-        Title: formattedRecipe.original_recipe.title
+        Title: formattedRecipe.original_recipe.title,
       };
 
       // TODO handle errors when saving
-      const results = await databases.createDocument(
-        import.meta.env.PUBLIC_APPWRITE_DATABASE_ID,
-        import.meta.env.PUBLIC_APPWRITE_COLLECTION_ID,
-        ID.unique(),
-        data
-      );
+      try {
+        const createdRecipe = await databaseService.createRecipe(data);
+        console.log("Created Recipe:", createdRecipe);
+      } catch (error) {
+        console.error("Error creating recipe:", error);
+      }
 
       return Astro.redirect(`/recipes/${data.Slug}`);
     }
   } catch (err) {
+    console.log(err);
     error = `Failed to process recipe: ${err instanceof Error ? err.message : "Unknown error"}`;
   }
 }

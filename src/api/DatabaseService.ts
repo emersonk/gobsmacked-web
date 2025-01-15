@@ -1,5 +1,4 @@
 import { Client, Databases, ID, Query } from "appwrite";
-import { Recipe } from "@/models/interfaces";
 
 export class DatabaseService {
     private static instance: DatabaseService;
@@ -19,8 +18,8 @@ export class DatabaseService {
     }
 
     /**
-     * Get the RecipeService instance
-     * @returns RecipeService instance
+     * Get the DatabaseService instance
+     * @returns DatabaseService instance
      */
     public static getInstance(): DatabaseService {
         if (!DatabaseService.instance) {
@@ -31,16 +30,16 @@ export class DatabaseService {
 
     /**
      * Fetch all recipes from the database
-     * @returns Promise<Recipe[]>
+     * @returns Promise<any[]>
      * @throws Error if the database operation fails
      */
-    async getAllRecipes(): Promise<Recipe[]> {
+    async getAllRecipes(): Promise<any[]> {
         try {
             const response = await this.databases.listDocuments(
                 this.databaseId,
                 this.collectionId
             );
-            return response.documents as Recipe[];
+            return response.documents;
         } catch (error) {
             throw this.handleError(error, 'Failed to fetch recipes');
         }
@@ -49,10 +48,11 @@ export class DatabaseService {
     /**
      * Find a recipe by its URL
      * @param recipeUrl - The URL of the recipe to find
-     * @returns Promise<Recipe | null>
+     * @returns Promise<any | null>
      * @throws Error if the database operation fails
      */
-    async findRecipeByUrl(recipeUrl: string): Promise<Recipe | null> {
+    // TODO 'OriginalURL' should come from a database object
+    async findRecipeByUrl(recipeUrl: string): Promise<{ documents: any[] }> {
         try {
             const response = await this.databases.listDocuments(
                 this.databaseId,
@@ -60,9 +60,8 @@ export class DatabaseService {
                 [Query.equal("OriginalURL", recipeUrl)]
             );
 
-            return response.documents.length > 0
-                ? { ...response.documents[0], id: response.documents[0].$id } as Recipe
-                : null;
+            // Ensure we return a predictable structure, even if no documents are found
+            return { documents: response.documents };
         } catch (error) {
             throw this.handleError(error, 'Failed to find recipe by URL');
         }
@@ -71,10 +70,10 @@ export class DatabaseService {
     /**
      * Find a recipe by its slug
      * @param slug - The slug of the recipe to find
-     * @returns Promise<Recipe | null>
+     * @returns Promise<any | null>
      * @throws Error if the database operation fails
      */
-    async findRecipeBySlug(slug: string): Promise<Recipe | null> {
+    async findRecipeBySlug(slug: string): Promise<any | null> {
         try {
             const response = await this.databases.listDocuments(
                 this.databaseId,
@@ -83,7 +82,7 @@ export class DatabaseService {
             );
 
             return response.documents.length > 0
-                ? { ...response.documents[0], id: response.documents[0].$id } as Recipe
+                ? { ...response.documents[0], id: response.documents[0].$id }
                 : null;
         } catch (error) {
             throw this.handleError(error, 'Failed to find recipe by slug');
@@ -93,70 +92,23 @@ export class DatabaseService {
     /**
      * Create a new recipe
      * @param data - The recipe data to create
-     * @returns Promise<Recipe>
+     * @returns Promise<any>
      * @throws Error if the database operation fails or validation fails
      */
-    async createRecipe(data: Omit<Recipe, 'id' | 'createdAt' | 'updatedAt'>): Promise<Recipe> {
+    async createRecipe(data: Omit<any, 'id' | 'createdAt' | 'updatedAt'>): Promise<any> {
         try {
-            this.validateRecipeData(data);
+            // this.validateRecipeData(data);
 
             const response = await this.databases.createDocument(
                 this.databaseId,
                 this.collectionId,
                 ID.unique(),
-                {
-                    ...data,
-                    createdAt: new Date().toISOString(),
-                    updatedAt: new Date().toISOString()
-                }
+                data
             );
 
-            return { ...response, id: response.$id } as Recipe;
+            return { ...response, id: response.$id };
         } catch (error) {
             throw this.handleError(error, 'Failed to create recipe');
-        }
-    }
-
-    /**
-     * Update an existing recipe
-     * @param recipeId - The ID of the recipe to update
-     * @param data - The recipe data to update
-     * @returns Promise<Recipe>
-     * @throws Error if the database operation fails or validation fails
-     */
-    async updateRecipe(recipeId: string, data: Partial<Omit<Recipe, 'id' | 'createdAt' | 'updatedAt'>>): Promise<Recipe> {
-        try {
-            const response = await this.databases.updateDocument(
-                this.databaseId,
-                this.collectionId,
-                recipeId,
-                {
-                    ...data,
-                    updatedAt: new Date().toISOString()
-                }
-            );
-
-            return { ...response, id: response.$id } as Recipe;
-        } catch (error) {
-            throw this.handleError(error, 'Failed to update recipe');
-        }
-    }
-
-    /**
-     * Delete a recipe
-     * @param recipeId - The ID of the recipe to delete
-     * @returns Promise<void>
-     * @throws Error if the database operation fails
-     */
-    async deleteRecipe(recipeId: string): Promise<void> {
-        try {
-            await this.databases.deleteDocument(
-                this.databaseId,
-                this.collectionId,
-                recipeId
-            );
-        } catch (error) {
-            throw this.handleError(error, 'Failed to delete recipe');
         }
     }
 
@@ -165,7 +117,7 @@ export class DatabaseService {
      * @param data - The recipe data to validate
      * @throws Error if validation fails
      */
-    private validateRecipeData(data: Partial<Recipe>): void {
+    private validateRecipeData(data: Partial<any>): void {
         if (!data.title) {
             throw new Error('Recipe title is required');
         }

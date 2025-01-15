@@ -2,7 +2,7 @@
 import { databaseService } from "@/api/DatabaseService";
 import BaseLayout from "@/layouts/BaseLayout.astro";
 
-const { documents: recipes } = await databaseService.getAllRecipes();
+const recipes  = await databaseService.getAllRecipes();
 ---
 
 <BaseLayout>
