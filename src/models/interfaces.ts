@@ -1,19 +1,18 @@
-// Pydantic model TODO match name
-export interface StepIngredient {
+// Pydantic models
+// **************************************
+export interface IngredientReference {
     id: number;
     amount: string | null;
 }
 
-// Pydantic model TODO match name
-export interface RecipeStep {
+export interface Step {
     id: number;
     action: string;
     options: string | null;
     parents: number[] | null;
-    ingredients: StepIngredient[] | null;
+    ingredients: IngredientReference[] | null;
 }
 
-// Pydantic model
 export interface Ingredient {
     id: number;
     name: string;
@@ -23,7 +22,8 @@ export interface Ingredient {
     notes: string | null;
 }
 
-// Domain model
+// Domain models
+// **************************************
 export interface StepPlacement {
     currentGridRowStart: number;
     currentGridColumnStart: number;
@@ -35,7 +35,6 @@ export interface StepPlacement {
     colorClass: string;
 }
 
-// Domain model
 export interface IngredientPlacement {
     currentGridRowStart: number;
     quantity: string | null;
@@ -47,6 +46,7 @@ export interface IngredientPlacement {
 }
 
 // TODO database DTO object
+// **************************************
 export interface Recipe {
     id: string;
     OriginalURL?: string;
@@ -58,7 +58,7 @@ export interface Recipe {
     cookTime?: string;
     totalTime?: string;
     ingredients: Ingredient[];
-    steps: RecipeStep[];
+    steps: Step[];
     stepPlacements?: StepPlacement[];
     ingredientPlacements?: IngredientPlacement[];
     createdAt: string;

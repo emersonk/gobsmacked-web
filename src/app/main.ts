@@ -1,13 +1,13 @@
 import { RecipeGridCalculator } from './recipeGridCalculator';
 import { RecipeGridRenderer } from './recipeGridRenderer';
 import { 
-    RecipeStep,
+    Step,
     Ingredient
 } from '../models/interfaces';
 
 // Usage function
 export function renderRecipeGrid(stepsJson: string, ingredientsJson: string): void {
-    const recipeSteps: RecipeStep[] = JSON.parse(stepsJson).steps;
+    const recipeSteps: Step[] = JSON.parse(stepsJson).steps;
     const ingredients: Ingredient[] = JSON.parse(ingredientsJson).ingredients;
 
     const gridContainer = generateRecipeGrid(recipeSteps, ingredients);
@@ -18,7 +18,7 @@ export function renderRecipeGrid(stepsJson: string, ingredientsJson: string): vo
     }
 }
 
-function generateRecipeGrid(recipeSteps: RecipeStep[], ingredients: Ingredient[]): HTMLDivElement {
+function generateRecipeGrid(recipeSteps: Step[], ingredients: Ingredient[]): HTMLDivElement {
     const calculator = new RecipeGridCalculator(recipeSteps, ingredients);
     const [numberOfColumns, gridPlacementSteps, gridPlacementIngredients] = calculator.calculate();
 
