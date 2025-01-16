@@ -1,9 +1,10 @@
-// types.ts
+// Pydantic model TODO match name
 export interface StepIngredient {
     id: number;
     amount: string | null;
 }
 
+// Pydantic model TODO match name
 export interface RecipeStep {
     id: number;
     action: string;
@@ -12,6 +13,7 @@ export interface RecipeStep {
     ingredients: StepIngredient[] | null;
 }
 
+// Pydantic model
 export interface Ingredient {
     id: number;
     name: string;
@@ -21,6 +23,7 @@ export interface Ingredient {
     notes: string | null;
 }
 
+// Domain model
 export interface StepPlacement {
     currentGridRowStart: number;
     currentGridColumnStart: number;
@@ -32,6 +35,7 @@ export interface StepPlacement {
     colorClass: string;
 }
 
+// Domain model
 export interface IngredientPlacement {
     currentGridRowStart: number;
     quantity: string | null;
@@ -42,6 +46,7 @@ export interface IngredientPlacement {
     colorClass: string;
 }
 
+// TODO database DTO object
 export interface Recipe {
     id: string;
     OriginalURL?: string;
