@@ -1,12 +1,12 @@
 import { 
-    RecipeStep, 
+    Step, 
     Ingredient, 
     StepPlacement, 
     IngredientPlacement 
 } from '../models/interfaces';
 
 export class RecipeGridCalculator {
-    private steps: RecipeStep[];
+    private steps: Step[];
     private ingredients: Ingredient[];
     private gridPlacementSteps: Record<number, StepPlacement> = {};
     private gridPlacementIngredients: Record<number, IngredientPlacement> = {};
@@ -16,7 +16,7 @@ export class RecipeGridCalculator {
     private lastStepColor: string;
     private lastColorClass: string;
 
-    constructor(steps: RecipeStep[], ingredients: Ingredient[]) {
+    constructor(steps: Step[], ingredients: Ingredient[]) {
         this.steps = steps;
         this.ingredients = ingredients;
 
@@ -32,7 +32,7 @@ export class RecipeGridCalculator {
         return [this.columnEndPointer - 1, this.gridPlacementSteps, this.gridPlacementIngredients];
     }
 
-    private processSteps(sortedSteps: RecipeStep[]): void {
+    private processSteps(sortedSteps: Step[]): void {
         let currentGridRowStart = 1;
         let currentGridColumnStart = 4;
 
@@ -62,11 +62,11 @@ export class RecipeGridCalculator {
     }
 
     private calculatePlacement(
-        step: RecipeStep,
+        step: Step,
         currentGridRowStart: number,
         currentGridColumnStart: number,
         index: number,
-        sortedSteps: RecipeStep[]
+        sortedSteps: Step[]
     ): StepPlacement {
         // Only generate new colors if there are new ingredients
         const hasNewIngredients = step.ingredients?.length ?? 0 > 0;
@@ -93,7 +93,7 @@ export class RecipeGridCalculator {
         };
     }
 
-    private processStepIngredients(step: RecipeStep, stepColor: string, colorClass: string): number {
+    private processStepIngredients(step: Step, stepColor: string, colorClass: string): number {
         const stepIngredients = step.ingredients ?? [];
         stepIngredients.forEach(ingredient => {
             const fullIngredient = this.ingredients.find(x => x.id === ingredient.id);
@@ -163,7 +163,7 @@ export class RecipeGridCalculator {
     }
 
     private calculateGridPosition(
-        step: RecipeStep,
+        step: Step,
         numOfIngredientsAddedInStep: number,
         numParents: number,
         currentGridRowStart: number,
@@ -204,12 +204,17 @@ export class RecipeGridCalculator {
     }
 
     private calculatePositionWithParents(
-        step: RecipeStep,
+        step: Step,
         numOfIngredientsAdded: number
     ): Pick<StepPlacement, 'currentGridRowStart' | 'currentGridColumnStart' | 'nextGridRowStart' | 'nextGridColumnStart'> {
         const parentPlacements = step.parents
             ?.map(parentId => this.gridPlacementSteps[parentId])
             .filter(Boolean) ?? [];
+        
+        console.log(step);
+        console.log(parentPlacements);
+        console.log(Math.max(...parentPlacements.map(p => p.nextGridRowStart)));
+        console.log(numOfIngredientsAdded);
 
         if (numOfIngredientsAdded === 0) {
             return {
@@ -228,7 +233,7 @@ export class RecipeGridCalculator {
         };
     }
 
-    private calculateBorderRadius(index: number, sortedSteps: RecipeStep[]): number {
+    private calculateBorderRadius(index: number, sortedSteps: Step[]): number {
         // If ingredients are added in the next step, border should be rounded
         if (index + 1 < sortedSteps.length) {
             return (sortedSteps[index + 1].ingredients?.length ?? 0) >= 1 ? 20 : 0;
@@ -236,14 +241,14 @@ export class RecipeGridCalculator {
         return 0;
     }
 
-    private topologicalSort(): RecipeStep[] {
-        const graph = new Map<number, RecipeStep>();
+    private topologicalSort(): Step[] {
+        const graph = new Map<number, Step>();
         const visited = new Set<number>();
-        const sortedSteps: RecipeStep[] = [];
+        const sortedSteps: Step[] = [];
 
         this.steps.forEach(step => graph.set(step.id, step));
 
-        const visit = (step: RecipeStep): void => {
+        const visit = (step: Step): void => {
             if (visited.has(step.id)) return;
             visited.add(step.id);
 
