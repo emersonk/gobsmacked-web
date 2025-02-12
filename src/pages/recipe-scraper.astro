@@ -1,7 +1,7 @@
 ---
 import BaseLayout from "@/layouts/BaseLayout.astro";
 import { databaseService } from "@/api/DatabaseService";
-import { fetchRecipe } from "@/api/RecipeService";
+import { loadAndParseRecipe } from "@/api/RecipeService";
 import { createHash } from "crypto";
 
 let error: string | null = null;
@@ -30,21 +30,23 @@ if (Astro.request.method === "POST") {
       return Astro.redirect(`/recipes/${recipe.Slug}`);
     } else {
       // Format recipe, save to database,
-      const formattedRecipe = await fetchRecipe(recipeUrl);
+      const formattedRecipe = await loadAndParseRecipe(recipeUrl);
+      console.log(formattedRecipe);
       const hashedValue = hashString(recipeUrl);
-      const urlSafeTitle = formattedRecipe.original_recipe.title
+      const urlSafeTitle = formattedRecipe.title
         .trim()
         .toLowerCase()
         .replace(/[^a-z0-9\s-]/g, "")
         .replace(/\s+/g, "-");
 
       // TODO would rather this be a model somewherre
+      // TODO should just use the RecipeResponse model??
       const data = {
         OriginalURL: recipeUrl,
         Ingredients: formattedRecipe.ingredients,
         Steps: formattedRecipe.steps,
         Slug: `${urlSafeTitle}-${hashedValue}`,
-        Title: formattedRecipe.original_recipe.title,
+        Title: formattedRecipe.title,
       };
 
       // TODO handle errors when saving
