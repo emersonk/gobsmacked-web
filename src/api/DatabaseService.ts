@@ -97,14 +97,18 @@ export class DatabaseService {
      */
     async createRecipe(data: Omit<any, 'id' | 'createdAt' | 'updatedAt'>): Promise<any> {
         try {
-            // TODO eventually
-            // this.validateRecipeData(data);
+            // Convert Ingredients and Steps to strings
+            const formattedData = {
+                ...data,
+                Ingredients: JSON.stringify(data.Ingredients),
+                Steps: JSON.stringify(data.Steps),
+            };
 
             const response = await this.databases.createDocument(
                 this.databaseId,
                 this.collectionId,
                 ID.unique(),
-                data
+                formattedData
             );
 
             return { ...response, id: response.$id };

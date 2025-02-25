@@ -22,6 +22,14 @@ export interface Ingredient {
     notes: string | null;
 }
 
+export interface Ingredients {
+    ingredients: Ingredient[];
+}
+
+export interface Steps {
+    steps: Step[];
+}
+
 export interface RecipeResponse {
     title: string; // Title of the recipe
     ingredients: string[]; // List of ingredients
@@ -29,6 +37,8 @@ export interface RecipeResponse {
     total_time?: number; // Total time required
     yields?: string; // Servings or yield amount
     image?: string; // URL of the recipe image
+    processed_ingredients?: Ingredients; // Processed ingredients
+    processed_steps?: Steps; // Processed steps
 }
 
 // Domain models

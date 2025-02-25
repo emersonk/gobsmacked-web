@@ -30,8 +30,14 @@ if (Astro.request.method === "POST") {
       return Astro.redirect(`/recipes/${recipe.Slug}`);
     } else {
       // Format recipe, save to database,
+      console.log("Calling loadAndParseRecipe with URL:", recipeUrl);
       const formattedRecipe = await loadAndParseRecipe(recipeUrl);
-      console.log(formattedRecipe);
+      console.log("Formatted Recipe:", formattedRecipe);
+
+      if (!formattedRecipe) {
+        throw new Error("Failed to format recipe");
+      }
+
       const hashedValue = hashString(recipeUrl);
       const urlSafeTitle = formattedRecipe.title
         .trim()
@@ -39,17 +45,14 @@ if (Astro.request.method === "POST") {
         .replace(/[^a-z0-9\s-]/g, "")
         .replace(/\s+/g, "-");
 
-      // TODO would rather this be a model somewherre
-      // TODO should just use the RecipeResponse model??
       const data = {
         OriginalURL: recipeUrl,
-        Ingredients: formattedRecipe.ingredients,
-        Steps: formattedRecipe.steps,
+        Ingredients: formattedRecipe.processed_ingredients?.ingredients || [],
+        Steps: formattedRecipe.processed_steps?.steps || [],
         Slug: `${urlSafeTitle}-${hashedValue}`,
         Title: formattedRecipe.title,
       };
 
-      // TODO handle errors when saving
       try {
         const createdRecipe = await databaseService.createRecipe(data);
         console.log("Created Recipe:", createdRecipe);
